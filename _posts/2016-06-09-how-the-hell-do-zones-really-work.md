@@ -200,5 +200,5 @@ new NgZoneImpl({
 ....
 ```
 
-This is from the <a href="https://github.com/angular/angular/blob/master/modules/%40angular/core/src/zone/ng_zone.ts" target="_blank">NgZone.ts</a> source file. Zone.js exposes lifecycle hooks. This is a listing of the events Angular 2 listens to. Since everything in Angular 2 is run in a single Zone, ngZone, Angular 2 can leverage this to determine when it should perform a Change Detection cycle based on those callbacks. This removes the need to manually call `$digest` like in Angular 1.
+This is from the <a href="https://github.com/angular/angular/blob/master/packages/core/src/zone/ng_zone.ts" target="_blank">NgZone.ts</a> source file. Zone.js exposes lifecycle hooks. This is a listing of the events Angular 2 listens to. Since everything in Angular 2 is run in a single Zone, ngZone, Angular 2 can leverage this to determine when it should perform a Change Detection cycle based on those callbacks. This removes the need to manually call `$digest` like in Angular 1.
 Pretty neat right!
