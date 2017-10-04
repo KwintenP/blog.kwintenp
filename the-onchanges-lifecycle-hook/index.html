@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- [[! Document Settings ]] -->
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <!-- [[! Page Meta ]] -->
+    <title>The $onChanges lifecycle-hook in depth</title>
+    <meta name="description" content="KwintenP - Blog on everything I'm interested in as a full stack developer." />
+
+    <meta name="HandheldFriendly" content="True" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="shortcut icon" href="/assets/images/favicon.ico" >
+
+    <!-- [[! Styles'n'Scripts ]] -->
+    <link rel="stylesheet" type="text/css" href="/assets/css/screen.css" />
+    <link rel="stylesheet" type="text/css"
+          href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+    <link rel="stylesheet" type="text/css" href="/assets/css/syntax.css" />
+
+    <!-- [[! highlight.js ]] -->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/styles/default.min.css">
+    <!--<style>.hljs { background: none; }</style>-->
+    <!--<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/highlight.min.js"></script>-->
+    <!--<script>hljs.initHighlightingOnLoad();</script>-->
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="/assets/css/prism.css" rel="stylesheet">
+    <link href="/assets/css/custom.css" rel="stylesheet">
+    <link href="/assets/css/rrssb.css" rel="stylesheet">
+
+    <!-- [[! Ghost outputs important style and meta data with this tag ]] -->
+        <link rel="canonical" href="/" />
+    <meta name="referrer" content="origin" />
+    <link rel="next" href="/page2/" />
+
+    <meta property="og:site_name" content="KwintenP" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="KwintenP" />
+    <meta property="og:description" content="Blog on everything I'm interested in as a full stack developer." />
+    <meta property="og:url" content="/" />
+    <meta property="og:image" content="/assets/images/cover1.jpg" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="KwintenP" />
+    <meta name="twitter:description" content="Blog on everything I'm interested in as a full stack developer." />
+    <meta name="twitter:url" content="/" />
+    <meta name="twitter:image:src" content="/assets/images/cover1.jpg" />
+
+    <script type="application/ld+json">
+{
+    "@context": "http://schema.org",
+    "@type": "Website",
+    "publisher": "Finding The Way Home",
+    "url": "/",
+    "image": "/assets/images/cover1.jpg",
+    "description": "Blog on everything I'm interested in as a full stack developer."
+}
+    </script>
+
+    <meta name="generator" content="Jekyll 3.0.0" />
+    <link rel="alternate" type="application/rss+xml" title="KwintenP" href="/feed.xml" />
+
+
+</head>
+
+<body class="home-template post-template nav-closed">
+
+    <div class="nav">
+    <h3 class="nav-title">Menu</h3>
+    <a href="#" class="nav-close">
+        <span class="hidden">Close</span>
+    </a>
+    <ul>
+        <li class="nav-home " role="presentation"><a href="/">Home</a></li>
+        <li class="nav-about " role="presentation"><a href="/about">About</a></li>
+        <li class="nav-fables " role="presentation"><a href="/tag/fables">Fables</a></li>
+        <li class="nav-speeches " role="presentation"><a href="/tag/speeches">Speeches</a></li>
+        <li class="nav-fiction " role="presentation"><a href="/tag/fiction">Fiction</a></li>
+        <li class="nav-author " role="presentation"><a href="/author/casper">Author</a></li>
+    </ul>
+    <a class="subscribe-button icon-feed" href="/feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+
+    <div class="site-wrapper">
+        <!-- [[! Everything else gets inserted here ]] -->
+        <!-- < default -->
+
+<!-- The comment above "< default" means - insert everything in this file into -->
+<!-- the [body] of the default.hbs template, which contains our header/footer. -->
+
+<!-- Everything inside the #post tags pulls data from the post -->
+<!-- #post -->
+
+<header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        <!---->
+        <!---->
+        <a class="back-button icon-arrow-left" href="/ "> Home</a>
+        <a class="subscribe-button icon-feed" href="/rss/"> Subscribe</a>
+    </nav>
+</header>
+
+<main class="content" role="main">
+
+    <article class="post">
+
+        <header class="post-header">
+            <h1 class="post-title">The $onChanges lifecycle-hook in depth</h1>
+            <section class="post-meta">
+                <!-- <a href='/'>Kwinten Pisman</a> -->
+                <time class="post-date" datetime="2016-04-06">06 Apr 2016
+                </time>
+                <!-- [[tags prefix=" on "]] -->
+                
+            </section>
+            <section class="social-share">
+                <ul class="rrssb-buttons clearfix rrssb-1">
+    <li class="rrssb-email" data-initwidth="12.5" data-size="38" style="width: calc(25% - 42px);">
+
+        <!-- Replace subject with your message using URL Endocding: http://meyerweb.com/eric/tools/dencoder/ -->
+        <a href="mailto:?subject=How%20share()%20can%20reduce%20network%20requests&amp;body=How%20share()%20can%20reduce%20network%20requests%0A%0Ahttp%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+                    <path d="M20.11 26.147c-2.335 1.05-4.36 1.4-7.124 1.4C6.524 27.548.84 22.916.84 15.284.84 7.343 6.602.45 15.4.45c6.854 0 11.8 4.7 11.8 11.252 0 5.684-3.193 9.265-7.398 9.3-1.83 0-3.153-.934-3.347-2.997h-.077c-1.208 1.986-2.96 2.997-5.023 2.997-2.532 0-4.36-1.868-4.36-5.062 0-4.75 3.503-9.07 9.11-9.07 1.713 0 3.7.4 4.6.972l-1.17 7.203c-.387 2.298-.115 3.3 1 3.4 1.674 0 3.774-2.102 3.774-6.58 0-5.06-3.27-8.994-9.304-8.994C9.05 2.87 3.83 7.545 3.83 14.97c0 6.5 4.2 10.2 10 10.202 1.987 0 4.09-.43 5.647-1.245l.634 2.22zM16.647 10.1c-.31-.078-.7-.155-1.207-.155-2.572 0-4.596 2.53-4.596 5.53 0 1.5.7 2.4 1.9 2.4 1.44 0 2.96-1.83 3.31-4.088l.592-3.72z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">email</span>
+        </a>
+    </li>
+
+    <li class="rrssb-twitter" data-initwidth="12.5" data-size="45" style="width: calc(25% - 42px);">
+        <!-- Replace href with your Meta and URL information  -->
+        <a href="https://twitter.com/intent/tweet?text=How%20share()%20can%20reduce%20network%20requests%20http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F" class="popup">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+                    <path d="M24.253 8.756C24.69 17.08 18.297 24.182 9.97 24.62c-3.122.162-6.22-.646-8.86-2.32 2.702.18 5.375-.648 7.507-2.32-2.072-.248-3.818-1.662-4.49-3.64.802.13 1.62.077 2.4-.154-2.482-.466-4.312-2.586-4.412-5.11.688.276 1.426.408 2.168.387-2.135-1.65-2.73-4.62-1.394-6.965C5.574 7.816 9.54 9.84 13.802 10.07c-.842-2.738.694-5.64 3.434-6.48 2.018-.624 4.212.043 5.546 1.682 1.186-.213 2.318-.662 3.33-1.317-.386 1.256-1.248 2.312-2.4 2.942 1.048-.106 2.07-.394 3.02-.85-.458 1.182-1.343 2.15-2.48 2.71z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">twitter</span>
+        </a>
+    </li>
+
+    <li class="rrssb-facebook" data-initwidth="12.5" data-size="49" style="width: calc(25% - 42px);">
+        <!--  Replace with your URL. For best results, make sure you page has the proper FB Open Graph tags in header:
+              https://developers.facebook.com/docs/opengraph/howtos/maximizing-distribution-media-content/ -->
+        <a class="popup" href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29">
+                    <path d="M26.4 0H2.6C1.714 0 0 1.715 0 2.6v23.8c0 .884 1.715 2.6 2.6 2.6h12.393V17.988h-3.996v-3.98h3.997v-3.062c0-3.746 2.835-5.97 6.177-5.97 1.6 0 2.444.173 2.845.226v3.792H21.18c-1.817 0-2.156.9-2.156 2.168v2.847h5.045l-.66 3.978h-4.386V29H26.4c.884 0 2.6-1.716 2.6-2.6V2.6c0-.885-1.716-2.6-2.6-2.6z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">facebook</span>
+        </a>
+    </li>
+
+    <li class="rrssb-linkedin" data-initwidth="12.5" data-size="49" style="width: calc(25% - 42px);">
+        <!-- Replace href with your meta and URL information -->
+        <a class="popup" href="http://www.linkedin.com/shareArticle?mini=true&amp;url=http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F&amp;title=How%20share()%20can%20reduce%20network%20requests&amp;summary=How%20share()%20can%20reduce%20network%20requests">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28">
+                    <path d="M25.424 15.887v8.447h-4.896v-7.882c0-1.98-.71-3.33-2.48-3.33-1.354 0-2.158.91-2.514 1.802-.13.315-.162.753-.162 1.194v8.216h-4.9s.067-13.35 0-14.73h4.9v2.087c-.01.017-.023.033-.033.05h.032v-.05c.65-1.002 1.812-2.435 4.414-2.435 3.222 0 5.638 2.106 5.638 6.632zM5.348 2.5c-1.676 0-2.772 1.093-2.772 2.54 0 1.42 1.066 2.538 2.717 2.546h.032c1.71 0 2.77-1.132 2.77-2.546C8.056 3.593 7.02 2.5 5.344 2.5h.005zm-2.48 21.834h4.896V9.604H2.867v14.73z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">linkedin</span>
+        </a>
+    </li>
+
+
+    <li class="rrssb-reddit small" data-initwidth="12.5" data-size="45" style="width: 42px;">
+        <a href="http://www.reddit.com/submit?url=http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F&amp;text=How%20share()%20can%20reduce%20network%20requests&amp;title=How%20share()%20can%20reduce%20network%20requests">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+                    <path d="M11.794 15.316c0-1.03-.835-1.895-1.866-1.895-1.03 0-1.893.866-1.893 1.896s.863 1.9 1.9 1.9c1.023-.016 1.865-.916 1.865-1.9zM18.1 13.422c-1.03 0-1.895.864-1.895 1.895 0 1 .9 1.9 1.9 1.865 1.03 0 1.87-.836 1.87-1.865-.006-1.017-.875-1.917-1.875-1.895zM17.527 19.79c-.678.68-1.826 1.007-3.514 1.007h-.03c-1.686 0-2.834-.328-3.51-1.005-.264-.265-.693-.265-.958 0-.264.265-.264.7 0 1 .943.9 2.4 1.4 4.5 1.402.005 0 0 0 0 0 .005 0 0 0 0 0 2.066 0 3.527-.46 4.47-1.402.265-.264.265-.693.002-.958-.267-.334-.688-.334-.988-.043z"></path>
+                    <path d="M27.707 13.267c0-1.785-1.453-3.237-3.236-3.237-.792 0-1.517.287-2.08.76-2.04-1.294-4.647-2.068-7.44-2.218l1.484-4.69 4.062.955c.07 1.4 1.3 2.6 2.7 2.555 1.488 0 2.695-1.208 2.695-2.695C25.88 3.2 24.7 2 23.2 2c-1.06 0-1.98.616-2.42 1.508l-4.633-1.09c-.344-.082-.693.117-.803.454l-1.793 5.7C10.55 8.6 7.7 9.4 5.6 10.75c-.594-.45-1.3-.75-2.1-.72-1.785 0-3.237 1.45-3.237 3.2 0 1.1.6 2.1 1.4 2.69-.04.27-.06.55-.06.83 0 2.3 1.3 4.4 3.7 5.9 2.298 1.5 5.3 2.3 8.6 2.325 3.227 0 6.27-.825 8.57-2.325 2.387-1.56 3.7-3.66 3.7-5.917 0-.26-.016-.514-.05-.768.965-.465 1.577-1.565 1.577-2.698zm-4.52-9.912c.74 0 1.3.6 1.3 1.3 0 .738-.6 1.34-1.34 1.34s-1.343-.602-1.343-1.34c.04-.655.596-1.255 1.396-1.3zM1.646 13.3c0-1.038.845-1.882 1.883-1.882.31 0 .6.1.9.21-1.05.867-1.813 1.86-2.26 2.9-.338-.328-.57-.728-.57-1.26zm20.126 8.27c-2.082 1.357-4.863 2.105-7.83 2.105-2.968 0-5.748-.748-7.83-2.105-1.99-1.3-3.087-3-3.087-4.782 0-1.784 1.097-3.484 3.088-4.784 2.08-1.358 4.86-2.106 7.828-2.106 2.967 0 5.7.7 7.8 2.106 1.99 1.3 3.1 3 3.1 4.784C24.86 18.6 23.8 20.3 21.8 21.57zm4.014-6.97c-.432-1.084-1.19-2.095-2.244-2.977.273-.156.59-.245.928-.245 1.036 0 1.9.8 1.9 1.9-.016.522-.27 1.022-.57 1.327z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">reddit</span>
+        </a>
+    </li>
+
+    <li class="rrssb-hackernews small" data-initwidth="12.5" data-size="45" style="width: 42px;">
+        <a href="https://news.ycombinator.com/submitlink?u=http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F&amp;text=How%20share()%20can%20reduce%20network%20requests">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+                    <path fill="#FFF" d="M14 13.626l-4.508-9.19H6.588l6.165 12.208v6.92h2.51v-6.92l6.15-12.21H18.69"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">hackernews</span>
+        </a>
+    </li>
+
+    <li class="rrssb-googleplus small" data-initwidth="12.5" data-size="45" style="width: 42px;">
+        <!-- Replace href with your meta and URL information.  -->
+        <a class="popup" href="https://plus.google.com/share?url=How%20share()%20can%20reduce%20network%20requests%20http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                    <path d="M21 8.29h-1.95v2.6h-2.6v1.82h2.6v2.6H21v-2.6h2.6v-1.885H21V8.29zM7.614 10.306v2.925h3.9c-.26 1.69-1.755 2.925-3.9 2.925-2.34 0-4.29-2.016-4.29-4.354s1.885-4.353 4.29-4.353c1.104 0 2.014.326 2.794 1.105l2.08-2.08c-1.3-1.17-2.924-1.883-4.874-1.883C3.65 4.586.4 7.835.4 11.8s3.25 7.212 7.214 7.212c4.224 0 6.953-2.988 6.953-7.082 0-.52-.065-1.104-.13-1.624H7.614z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">google+</span>
+        </a>
+    </li>
+    <li class="rrssb-pocket small" data-initwidth="12.5" data-size="51" style="width: 42px;">
+        <a href="https://getpocket.com/save?url=http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F">
+            <span class="rrssb-icon">
+                <svg width="32" height="28" viewBox="0 0 32 28" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M28.782.002c2.03.002 3.193 1.12 3.182 3.106-.022 3.57.17 7.16-.158 10.7-1.09 11.773-14.588 18.092-24.6 11.573C2.72 22.458.197 18.313.057 12.937c-.09-3.36-.05-6.72-.026-10.08C.04 1.113 1.212.016 3.02.008 7.347-.006 11.678.004 16.006.002c4.258 0 8.518-.004 12.776 0zM8.65 7.856c-1.262.135-1.99.57-2.357 1.476-.392.965-.115 1.81.606 2.496 2.453 2.334 4.91 4.664 7.398 6.966 1.086 1.003 2.237.99 3.314-.013 2.407-2.23 4.795-4.482 7.17-6.747 1.203-1.148 1.32-2.468.365-3.426-1.01-1.014-2.302-.933-3.558.245-1.596 1.497-3.222 2.965-4.75 4.526-.706.715-1.12.627-1.783-.034-1.597-1.596-3.25-3.138-4.93-4.644-.47-.42-1.123-.647-1.478-.844z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">pocket</span>
+        </a>
+    </li>
+
+</ul>
+            </section>
+        </header>
+
+        <section class="post-content">
+
+            <p>With the release of Angular 1.5.3 we got some awesome new features. As you all know, the point of the Angular 1.5 releases are to bring us closer to the Angular 2 way of working. With that in mind, the latest new feature we’ve got are Lifecycle hooks. What those are and how you can use them has already been perfectly explained by Pascal Precht on <a href="http://blog.thoughtram.io/angularjs/2016/03/29/exploring-angular-1.5-lifecycle-hooks.html">his blog</a>. For the remainder of this blog, I’m going to assume you have read it.<br />
+I’m not going to try and do the same, instead I want to look at a specific lifecycle hook in depth, <code>$onChanges</code>. We’ll look at how it is implemented by Angular, how we can use it with some examples, a pitfall when using it with non-primitives and how we can fix it.</p>
+
+<h4 id="how-is-it-implemented-in-the-angular-codebase">How is it implemented in the Angular codebase</h4>
+<p>The <code>$onChanges</code> lifecycle hook can be used with the <code>'&lt;'</code> and <code>'@'</code> bindings. So to get started, we must look at how Angular handles these bindings.</p>
+
+<pre><code class="language-javascript">case '&lt;':
+     if (!hasOwnProperty.call(attrs, attrName)) {
+        if (optional) break;
+            attrs[attrName] = void 0;
+     }
+     if (optional &amp;&amp; !attrs[attrName]) break;
+     parentGet = $parse(attrs[attrName]);
+     destination[scopeName] = parentGet(scope);
+     removeWatch = scope.$watch(
+          parentGet,
+          function parentValueWatchAction(newParentValue) {
+                   var oldValue = destination[scopeName];
+                   recordChanges(scopeName, newParentValue, oldValue);
+                   destination[scopeName] = newParentValue;
+          },
+          parentGet.literal);
+     removeWatchCollection.push(removeWatch);
+     break;
+
+</code></pre>
+<p><strong>Note: We’ll only look at the <code>'&lt;'</code>binding since the concepts are the same.</strong></p>
+
+<p>This is the entire code block that is executed when a one-way binding is found. The part that really interests us here, is the <code>scope.$watch</code> expression and how it is setup.</p>
+
+<pre><code class="language-javascript">scope.$watch(
+     parentGet,
+     function parentValueWatchAction(newParentValue) {
+              var oldValue = destination[scopeName];
+              recordChanges(scopeName, newParentValue, oldValue);
+              destination[scopeName] = newParentValue;
+            },
+     parentGet.literal
+);
+</code></pre>
+
+<p>Let’s look at the listener function in particular, which is named <code>parentValueWatchAction</code> here. The listener function is the one that gets executed when the <code>$watch</code> expression is found dirty (if you do not understand what this means, I suggest you take a look at the <a href="https://www.ng-book.com/p/The-Digest-Loop-and-apply/">$digest cycle</a> which is a very important concept in Angular 1).<br />
+We can see that, if a <code>$watch</code> expression is dirty and the listener function is fired, a method called <code>recordChanges(scopeName, newParentValue, oldValue);</code> is executed. Hmmm thats seems interesting, lets dig deeper.</p>
+
+<pre><code class="language-javascript">function recordChanges(key, currentValue, previousValue) {
+        if (isFunction(destination.$onChanges)
+             &amp;&amp;
+            currentValue !== previousValue) {
+          // If we have not already scheduled the top
+          // level onChangesQueue handler then do so now
+          if (!onChangesQueue) {
+            scope.$$postDigest(flushOnChangesQueue);
+            onChangesQueue = [];
+          }
+          // If we have not already queued a trigger
+          // of onChanges for this controller then do so now
+          if (!changes) {
+            changes = {};
+            onChangesQueue.push(triggerOnChangesHook);
+          }
+          // If the has been a change on this property
+          // already then we need to reuse the previous value
+          if (changes[key]) {
+            previousValue = changes[key].previousValue;
+          }
+          // Store this change
+          changes[key] = {
+               previousValue: previousValue,
+               currentValue: currentValue
+          };
+        }
+}
+
+function triggerOnChangesHook() {
+        destination.$onChanges(changes);
+        // Now clear the changes so that we schedule
+        // onChanges when more changes arrive
+        changes = undefined;
+}
+</code></pre>
+
+<p>This function, which is executed every time a dirty watch expression is found, does a number of things.<br />
+What it basically does is: Check if your controller, called <code>destination</code> here, has an <code>$onChanges</code> method defined. If this is the case, it creates an object called <code>changes</code> with the previous value and the current value and pushes the <code>$onChanges</code> method with the <code>changes</code> object onto a queue.<br />
+It also registers a function called <code>flushOnChangesQueue</code> to be executed during the <code>$$postDigest</code> phase. Let’s look at what this function does.</p>
+
+<pre><code class="language-javascript">// This function is called in a $$postDigest to trigger
+// all the onChanges hooks in a single digest
+function flushOnChangesQueue() {
+      try {
+        if (!(--onChangesTtl)) {
+          // We have hit the TTL limit so reset everything
+          onChangesQueue = undefined;
+          throw $compileMinErr(
+                'infchng',
+                '{0} $onChanges() iterations reached.Aborting!\n',
+                TTL);
+        }
+        // We must run this hook in an apply since
+        // the $$postDigest runs outside apply
+        $rootScope.$apply(function() {
+          for (var i = 0, ii = onChangesQueue.length; i &lt; ii; ++i) {
+            onChangesQueue[i]();
+          }
+          // Reset the queue to trigger a new schedule
+          // next time there is a change
+          onChangesQueue = undefined;
+        });
+      } finally {
+        onChangesTtl++;
+      }
+}
+</code></pre>
+<p>This function just loops over all the callbacks that were pushed on the queue earlier, and executes them. So every controller with the <code>$onChanges</code> callback defined, that has a bound value that was changed, is notified.</p>
+
+<p>That’s basically it! What’s important to remember is:</p>
+
+<ul>
+  <li>
+    <p>for the lifecycle hook to work, a <code>scope.$watch</code> expression must be dirty</p>
+  </li>
+  <li>
+    <p>the lifecycle hooks that have values changed, are triggered after every digest cycle</p>
+  </li>
+  <li>
+    <p>an object containing the old and the new value can be passed to the <code>$onChanges</code> callback</p>
+  </li>
+</ul>
+
+<h4 id="time-for-some-examples">Time for some examples!</h4>
+
+<h6 id="primitives">Primitives</h6>
+
+<p>We’re going to start of with an easy example. I’ve create a <a href="http://plnkr.co/edit/ZB6CLEXuRMrEnTIjUpo7?p=preview">plnkr</a> that contains two components. A  component called ‘outer’ that contains another component called ‘inner’. Let’s look at the ‘outer’ component first.</p>
+
+<pre><code class="language-typescript">class OuterComponent{
+  public template: string =`
+    &lt;div&gt;
+      Value:  &lt;br /&gt;
+      &lt;input ng-model="$ctrl.primitiveValue"&gt; &lt;br /&gt; &lt;br /&gt;
+
+      &lt;inner primitive-value="$ctrl.primitiveValue"&gt;&lt;/inner&gt;
+    &lt;/div&gt;
+  `;
+}
+</code></pre>
+
+<p><strong>Note: all the examples are written using Typescript.</strong></p>
+
+<p>It’s about as easy as it gets. If we look at it’s template, we can see it has a property called <code>primitiveValue</code> that you can change via an input box. It also defines our ‘inner’ component and binds the <code>primitiveValue</code>.</p>
+
+<p>Let’s look at the ‘inner’ component.</p>
+
+<pre><code class="language-typescript">class InnerComponent {
+  public controller: Function = InnerController;
+  public bindings: any = {
+    primitiveValue : "&lt;"
+  };
+  public template: string =`
+    &lt;div&gt;
+      PrimitiveValue:  &lt;br /&gt;
+      Number of times the $onChanges is invoked: 
+    &lt;/div&gt;
+  `;
+}
+</code></pre>
+<p>We can see the one-way binding that accepts the <code>primitiveValue</code>. In the template, this is printed using ``.</p>
+
+<p>Let’s take a look at our ‘inner’ component’s controller.</p>
+
+<pre><code class="language-typescript">class InnerController {
+  private onChangesCalledCounter: number = 0;
+  public $onChanges(changes: any){
+      this.onChangesCalledCounter++;
+      console.log(changes);
+  }
+}
+</code></pre>
+<p>Notice the <code>$onChanges</code> definition in the controller. Every time it is executed, the <code>onChangesCalledCounter</code>, that is printed in the template as well, is incremented, and the changed object is logged to the console.</p>
+
+<p>The whole thing is wired together as follows.</p>
+
+<pre><code class="language-typescript">angular.module("app", [])
+  .component("outer",new OuterComponent())
+  .component("inner", new InnerComponent());
+</code></pre>
+<p>Note that this uses the new <code>.component</code> method introduced in Angular 1.5. This is a kind of directive that always has an isolate scope and has it’s <code>controllerAs</code> syntax set to <code>$ctrl</code> by default. Todd Motto has written an excellent <a href="https://toddmotto.com/exploring-the-angular-1-5-component-method/">blog post</a> on the subject.</p>
+
+<p>Let’s try input some text in the input box and see what it does:</p>
+<iframe style="width: 100%; height: 250px" src="https://embed.plnkr.co/ZB6CLEXuRMrEnTIjUpo7/" frameborder="0" allowfullscren="allowfullscren"></iframe>
+
+<p>As you might have expected, on every key input in the input box, the <code>$onChanges</code> function is invoked.<br />
+With what we’ve learned, this is quite logical. A key input means the <code>primitiveValue</code> in the outer component has changed and a digest cycle is started. This will see that the <code>$watch</code> expression that is setup for the <code>'&lt;'</code> binding is dirty and register the <code>$onChanges</code> callback to be notified during the <code>$$postDigest</code> phase.<br />
+Neat right!</p>
+
+<h6 id="non-primitive-values">Non primitive values</h6>
+<p>Let’s kick it up a notch! Next is an example where we bind an array from the ‘outer’ to the ‘inner’ component. This is the <a href="http://plnkr.co/edit/iUy6m9s49m6nXLEqIK1P?p=preview">plnkr</a>.<br />
+Let’s look at the ‘outer’ component’s controller.</p>
+
+<pre><code class="language-typescript">class OuterController {
+  private arrayValue: Array&lt;String&gt;;
+  private fruits: Array&lt;String&gt; = ["apple", "banana", "grape"];
+  private vegetables: Array&lt;String&gt; = ["brocolli", "aubergine", "avocado"];
+
+  public $onInit(): void {
+    this.arrayValue = this.fruits;
+  }
+
+  // In a real case scenario, this could be a network call that refreshes with new data
+  public switchArrayValue(): void {
+    if(this.arrayValue === this.fruits){
+      this.arrayValue = this.vegetables;
+    } else {
+      this.arrayValue = this.fruits;
+    }
+  }
+}
+</code></pre>
+
+<p>A controller is introduced that initialises an array called <code>arrayValue</code> to the fruits array. It also contains a <code>switchArrayValue</code> function that simply switches the reference from the <code>arrayValue</code> between the fruits and vegetables.<br />
+In our template, we’ve bounded the array to the ‘inner’ component and added a button to call the <code>switchArrayValue</code> function.</p>
+
+<p>The ‘inner’ component only changed in accepting an array instead of a primitive value.</p>
+
+<p>Let’s try to click the button and see what it does:</p>
+<iframe style="width: 100%; height: 250px" src="https://embed.plnkr.co/iUy6m9s49m6nXLEqIK1P/" frameborder="0" allowfullscren="allowfullscren"></iframe>
+
+<p>As you would’ve expected, it does exactly the same thing as the previous example for the same reasons.</p>
+
+<h6 id="non-primitive-values-pitfall">Non primitive values pitfall!</h6>
+
+<p>Next, let’s try to add an element to the array in the ‘outer’ component and see what happens.<br />
+To do this, we must update the ‘outer’ component.</p>
+
+<pre><code class="language-typescript">class OuterController {
+  private fruits: Array&lt;String&gt; = ["apple", "banana"];
+
+  public addElement(): void {
+    this.fruits.push("grape");
+  }
+}
+</code></pre>
+
+<p>We updated the controller to work with a fruit array and provide a method that adds an element to the array. In the template we just call this function when the button is clicked and bind the fruits array into our ‘inner’ component.</p>
+
+<p>What do you think will happen next? You’ve figured it out? Let’s give it a go!</p>
+
+<iframe style="width: 100%; height: 250px" src="https://embed.plnkr.co/Godmmy48YR5jv8O5fInI/" frameborder="0" allowfullscren="allowfullscren"></iframe>
+
+<p>Hmm, we see that the array in our ‘outer’ and our ‘inner’ component is updated. BUT our <code>$onChanges</code> callback is not fired. At first this might seem strange, but actually, it isn’t.<br />
+To explain why, we must look at the definition of the <code>$watch</code> function in Angular.</p>
+
+<pre><code class="language-javascript">$watch: function(
+    watchExp, listener, objectEquality, prettyPrintExpression
+    )
+</code></pre>
+<p>Take a look at the third argument: <strong>objectEquality</strong>. This tells Angular whether to check the watch expression via reference or object equality. We looked at the way the watch expression is setup in the <code>recordChanges()</code> method above. No parameter is passed as third argument which means it defaults to comparison by reference.<br />
+In our test case above, we did not change the reference of the array but only added an element. This means our <code>$watch</code> expression will never be dirty! In that case the <code>$onChanges</code> callback is never triggered.<br />
+By now, you might wonder, then how the hell did our ‘inner’ component’s array change. That’s the thing. The ‘outer’ and ‘inner’ component share the same javascript reference to the fruits array. So even if you would push an element onto the array in the ‘inner’ component, it would also update the ‘outer’ component. Put’s a whole new light onto ‘one-way binding’ doesn’t it :).</p>
+
+<h6 id="immutable-data-structures-to-the-rescue">Immutable data structures to the rescue!</h6>
+<p>You might wonder if the Angular team made an error of judgement when implementing it this way. In fact, they didn’t. It was a deliberate choice to work with a reference-based comparison scheme. If you’d perform a deep compare on every object, your application’s performance would be extremely poor.<br />
+So what can we do to get the expected behaviour for our <code>$onChanges</code> method. If we were to change the reference of our array every time we change something to the array, we would be getting exactly that. What we actually need are immutable data structures.<br />
+For the following example <a href="http://plnkr.co/edit/ANZnoxxe2K2pztlrPRfu?p=preview">plnkr</a>, I’ve chosen <a href="https://facebook.github.io/immutable-js/">ImmutableJS</a> to demonstrate that we can get the expected behaviour with immutable data structures.</p>
+
+<p>I’ve made a few small changes to the way the fruits array is created and updated:</p>
+
+<pre><code class="language-typescript">class OuterController {
+  private fruits: List&lt;String&gt; = Immutable.List.of("apple" "banana");
+
+  public addElement(): void {
+      this.fruits = this.fruits.push("grape");
+  }
+}
+</code></pre>
+<p>First of all, we initialise our list using ImmutableJS. The push method that is available on the returned object, of type <code>List</code>, doesn’t add an element to the existing datatype. Instead it returns a new instance of the List type with the element added. This way, we change our reference <strong>and</strong> add an element.</p>
+
+<p>Let’s test again to see if it works as expected.</p>
+<iframe style="width: 100%; height: 250px" src="https://embed.plnkr.co/ANZnoxxe2K2pztlrPRfu/" frameborder="0" allowfullscren="allowfullscren"></iframe>
+
+<p>And it does!</p>
+
+<h4 id="conclusion">Conclusion</h4>
+
+<p>The lifecycle hook provides us with some great functionality. But be cautious. It’s only triggered if we use <strong>primitives</strong> or <strong>change the reference of the javascript object bound into the component</strong>. That’s why I would recommend to always use immutable data structures throughout your bindings.</p>
+
+
+
+        </section>
+
+        <section class="social-share">
+            <ul class="rrssb-buttons clearfix rrssb-1">
+    <li class="rrssb-email" data-initwidth="12.5" data-size="38" style="width: calc(25% - 42px);">
+
+        <!-- Replace subject with your message using URL Endocding: http://meyerweb.com/eric/tools/dencoder/ -->
+        <a href="mailto:?subject=How%20share()%20can%20reduce%20network%20requests&amp;body=How%20share()%20can%20reduce%20network%20requests%0A%0Ahttp%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+                    <path d="M20.11 26.147c-2.335 1.05-4.36 1.4-7.124 1.4C6.524 27.548.84 22.916.84 15.284.84 7.343 6.602.45 15.4.45c6.854 0 11.8 4.7 11.8 11.252 0 5.684-3.193 9.265-7.398 9.3-1.83 0-3.153-.934-3.347-2.997h-.077c-1.208 1.986-2.96 2.997-5.023 2.997-2.532 0-4.36-1.868-4.36-5.062 0-4.75 3.503-9.07 9.11-9.07 1.713 0 3.7.4 4.6.972l-1.17 7.203c-.387 2.298-.115 3.3 1 3.4 1.674 0 3.774-2.102 3.774-6.58 0-5.06-3.27-8.994-9.304-8.994C9.05 2.87 3.83 7.545 3.83 14.97c0 6.5 4.2 10.2 10 10.202 1.987 0 4.09-.43 5.647-1.245l.634 2.22zM16.647 10.1c-.31-.078-.7-.155-1.207-.155-2.572 0-4.596 2.53-4.596 5.53 0 1.5.7 2.4 1.9 2.4 1.44 0 2.96-1.83 3.31-4.088l.592-3.72z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">email</span>
+        </a>
+    </li>
+
+    <li class="rrssb-twitter" data-initwidth="12.5" data-size="45" style="width: calc(25% - 42px);">
+        <!-- Replace href with your Meta and URL information  -->
+        <a href="https://twitter.com/intent/tweet?text=How%20share()%20can%20reduce%20network%20requests%20http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F" class="popup">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+                    <path d="M24.253 8.756C24.69 17.08 18.297 24.182 9.97 24.62c-3.122.162-6.22-.646-8.86-2.32 2.702.18 5.375-.648 7.507-2.32-2.072-.248-3.818-1.662-4.49-3.64.802.13 1.62.077 2.4-.154-2.482-.466-4.312-2.586-4.412-5.11.688.276 1.426.408 2.168.387-2.135-1.65-2.73-4.62-1.394-6.965C5.574 7.816 9.54 9.84 13.802 10.07c-.842-2.738.694-5.64 3.434-6.48 2.018-.624 4.212.043 5.546 1.682 1.186-.213 2.318-.662 3.33-1.317-.386 1.256-1.248 2.312-2.4 2.942 1.048-.106 2.07-.394 3.02-.85-.458 1.182-1.343 2.15-2.48 2.71z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">twitter</span>
+        </a>
+    </li>
+
+    <li class="rrssb-facebook" data-initwidth="12.5" data-size="49" style="width: calc(25% - 42px);">
+        <!--  Replace with your URL. For best results, make sure you page has the proper FB Open Graph tags in header:
+              https://developers.facebook.com/docs/opengraph/howtos/maximizing-distribution-media-content/ -->
+        <a class="popup" href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29">
+                    <path d="M26.4 0H2.6C1.714 0 0 1.715 0 2.6v23.8c0 .884 1.715 2.6 2.6 2.6h12.393V17.988h-3.996v-3.98h3.997v-3.062c0-3.746 2.835-5.97 6.177-5.97 1.6 0 2.444.173 2.845.226v3.792H21.18c-1.817 0-2.156.9-2.156 2.168v2.847h5.045l-.66 3.978h-4.386V29H26.4c.884 0 2.6-1.716 2.6-2.6V2.6c0-.885-1.716-2.6-2.6-2.6z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">facebook</span>
+        </a>
+    </li>
+
+    <li class="rrssb-linkedin" data-initwidth="12.5" data-size="49" style="width: calc(25% - 42px);">
+        <!-- Replace href with your meta and URL information -->
+        <a class="popup" href="http://www.linkedin.com/shareArticle?mini=true&amp;url=http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F&amp;title=How%20share()%20can%20reduce%20network%20requests&amp;summary=How%20share()%20can%20reduce%20network%20requests">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28">
+                    <path d="M25.424 15.887v8.447h-4.896v-7.882c0-1.98-.71-3.33-2.48-3.33-1.354 0-2.158.91-2.514 1.802-.13.315-.162.753-.162 1.194v8.216h-4.9s.067-13.35 0-14.73h4.9v2.087c-.01.017-.023.033-.033.05h.032v-.05c.65-1.002 1.812-2.435 4.414-2.435 3.222 0 5.638 2.106 5.638 6.632zM5.348 2.5c-1.676 0-2.772 1.093-2.772 2.54 0 1.42 1.066 2.538 2.717 2.546h.032c1.71 0 2.77-1.132 2.77-2.546C8.056 3.593 7.02 2.5 5.344 2.5h.005zm-2.48 21.834h4.896V9.604H2.867v14.73z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">linkedin</span>
+        </a>
+    </li>
+
+
+    <li class="rrssb-reddit small" data-initwidth="12.5" data-size="45" style="width: 42px;">
+        <a href="http://www.reddit.com/submit?url=http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F&amp;text=How%20share()%20can%20reduce%20network%20requests&amp;title=How%20share()%20can%20reduce%20network%20requests">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+                    <path d="M11.794 15.316c0-1.03-.835-1.895-1.866-1.895-1.03 0-1.893.866-1.893 1.896s.863 1.9 1.9 1.9c1.023-.016 1.865-.916 1.865-1.9zM18.1 13.422c-1.03 0-1.895.864-1.895 1.895 0 1 .9 1.9 1.9 1.865 1.03 0 1.87-.836 1.87-1.865-.006-1.017-.875-1.917-1.875-1.895zM17.527 19.79c-.678.68-1.826 1.007-3.514 1.007h-.03c-1.686 0-2.834-.328-3.51-1.005-.264-.265-.693-.265-.958 0-.264.265-.264.7 0 1 .943.9 2.4 1.4 4.5 1.402.005 0 0 0 0 0 .005 0 0 0 0 0 2.066 0 3.527-.46 4.47-1.402.265-.264.265-.693.002-.958-.267-.334-.688-.334-.988-.043z"></path>
+                    <path d="M27.707 13.267c0-1.785-1.453-3.237-3.236-3.237-.792 0-1.517.287-2.08.76-2.04-1.294-4.647-2.068-7.44-2.218l1.484-4.69 4.062.955c.07 1.4 1.3 2.6 2.7 2.555 1.488 0 2.695-1.208 2.695-2.695C25.88 3.2 24.7 2 23.2 2c-1.06 0-1.98.616-2.42 1.508l-4.633-1.09c-.344-.082-.693.117-.803.454l-1.793 5.7C10.55 8.6 7.7 9.4 5.6 10.75c-.594-.45-1.3-.75-2.1-.72-1.785 0-3.237 1.45-3.237 3.2 0 1.1.6 2.1 1.4 2.69-.04.27-.06.55-.06.83 0 2.3 1.3 4.4 3.7 5.9 2.298 1.5 5.3 2.3 8.6 2.325 3.227 0 6.27-.825 8.57-2.325 2.387-1.56 3.7-3.66 3.7-5.917 0-.26-.016-.514-.05-.768.965-.465 1.577-1.565 1.577-2.698zm-4.52-9.912c.74 0 1.3.6 1.3 1.3 0 .738-.6 1.34-1.34 1.34s-1.343-.602-1.343-1.34c.04-.655.596-1.255 1.396-1.3zM1.646 13.3c0-1.038.845-1.882 1.883-1.882.31 0 .6.1.9.21-1.05.867-1.813 1.86-2.26 2.9-.338-.328-.57-.728-.57-1.26zm20.126 8.27c-2.082 1.357-4.863 2.105-7.83 2.105-2.968 0-5.748-.748-7.83-2.105-1.99-1.3-3.087-3-3.087-4.782 0-1.784 1.097-3.484 3.088-4.784 2.08-1.358 4.86-2.106 7.828-2.106 2.967 0 5.7.7 7.8 2.106 1.99 1.3 3.1 3 3.1 4.784C24.86 18.6 23.8 20.3 21.8 21.57zm4.014-6.97c-.432-1.084-1.19-2.095-2.244-2.977.273-.156.59-.245.928-.245 1.036 0 1.9.8 1.9 1.9-.016.522-.27 1.022-.57 1.327z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">reddit</span>
+        </a>
+    </li>
+
+    <li class="rrssb-hackernews small" data-initwidth="12.5" data-size="45" style="width: 42px;">
+        <a href="https://news.ycombinator.com/submitlink?u=http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F&amp;text=How%20share()%20can%20reduce%20network%20requests">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+                    <path fill="#FFF" d="M14 13.626l-4.508-9.19H6.588l6.165 12.208v6.92h2.51v-6.92l6.15-12.21H18.69"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">hackernews</span>
+        </a>
+    </li>
+
+    <li class="rrssb-googleplus small" data-initwidth="12.5" data-size="45" style="width: 42px;">
+        <!-- Replace href with your meta and URL information.  -->
+        <a class="popup" href="https://plus.google.com/share?url=How%20share()%20can%20reduce%20network%20requests%20http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F">
+            <span class="rrssb-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                    <path d="M21 8.29h-1.95v2.6h-2.6v1.82h2.6v2.6H21v-2.6h2.6v-1.885H21V8.29zM7.614 10.306v2.925h3.9c-.26 1.69-1.755 2.925-3.9 2.925-2.34 0-4.29-2.016-4.29-4.354s1.885-4.353 4.29-4.353c1.104 0 2.014.326 2.794 1.105l2.08-2.08c-1.3-1.17-2.924-1.883-4.874-1.883C3.65 4.586.4 7.835.4 11.8s3.25 7.212 7.214 7.212c4.224 0 6.953-2.988 6.953-7.082 0-.52-.065-1.104-.13-1.624H7.614z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">google+</span>
+        </a>
+    </li>
+    <li class="rrssb-pocket small" data-initwidth="12.5" data-size="51" style="width: 42px;">
+        <a href="https://getpocket.com/save?url=http%3A%2F%2Fblog.kwintenp.com%2Fhow-share-can-reduce-network-requests%2F">
+            <span class="rrssb-icon">
+                <svg width="32" height="28" viewBox="0 0 32 28" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M28.782.002c2.03.002 3.193 1.12 3.182 3.106-.022 3.57.17 7.16-.158 10.7-1.09 11.773-14.588 18.092-24.6 11.573C2.72 22.458.197 18.313.057 12.937c-.09-3.36-.05-6.72-.026-10.08C.04 1.113 1.212.016 3.02.008 7.347-.006 11.678.004 16.006.002c4.258 0 8.518-.004 12.776 0zM8.65 7.856c-1.262.135-1.99.57-2.357 1.476-.392.965-.115 1.81.606 2.496 2.453 2.334 4.91 4.664 7.398 6.966 1.086 1.003 2.237.99 3.314-.013 2.407-2.23 4.795-4.482 7.17-6.747 1.203-1.148 1.32-2.468.365-3.426-1.01-1.014-2.302-.933-3.558.245-1.596 1.497-3.222 2.965-4.75 4.526-.706.715-1.12.627-1.783-.034-1.597-1.596-3.25-3.138-4.93-4.644-.47-.42-1.123-.647-1.478-.844z"></path>
+                </svg>
+            </span>
+            <span class="rrssb-text">pocket</span>
+        </a>
+    </li>
+
+</ul>
+        </section>
+
+        <footer class="post-footer">
+
+            <!-- Everything inside the #author tags pulls data from the author -->
+            <!-- #author-->
+
+            
+            <figure class="author-image">
+                <a class="img" href="/author/KwintenP"
+                   style="background-image: url(/assets/images/me.jpg)"><span class="hidden">'s Picture</span></a>
+            </figure>
+            
+
+            <section class="author">
+                <h4><a href="/author/KwintenP">Kwinten Pisman</a></h4>
+
+                
+                <p> Passionate software engineer</p>
+                
+                <div class="author-meta">
+                    <span class="author-location icon-location"> Belgium</span>
+                    <span class="author-link icon-link"><a
+                        href="https://blog.kwintenp.com"> </a></span>
+                </div>
+            </section>
+
+            <!-- /author  -->
+
+            <!--<section class="share">-->
+            <!--<h4>Share this post</h4>-->
+            <!--<a class="icon-twitter" href="http://twitter.com/share?text=The $onChanges lifecycle-hook in depth&amp;url=https://blog.kwintenp.comthe-onchanges-lifecycle-hook"-->
+            <!--onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">-->
+            <!--<span class="hidden">Twitter</span>-->
+            <!--</a>-->
+            <!--<a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=https://blog.kwintenp.comthe-onchanges-lifecycle-hook"-->
+            <!--onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">-->
+            <!--<span class="hidden">Facebook</span>-->
+            <!--</a>-->
+            <!--<a class="icon-google-plus" href="https://plus.google.com/share?url=https://blog.kwintenp.comthe-onchanges-lifecycle-hook"-->
+            <!--onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">-->
+            <!--<span class="hidden">Google+</span>-->
+            <!--</a>-->
+            <!--</section>-->
+
+            <!-- Add Disqus Comments -->
+
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'kwintenpghostio'; // required: replace example with your forum shortname
+        var disqus_identifier = 'blog.kwintenp.com/the-onchanges-lifecycle-hook/';
+        var disqus_url = 'https://blog.kwintenp.com/the-onchanges-lifecycle-hook/';
+
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = 'https://' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+
+        </footer>
+
+    </article>
+
+</main>
+
+<aside class="read-next">
+
+    <!-- [[! next_post ]] -->
+    
+    <a class="read-next-story no-cover"
+       href="/the-smart-vs-dumb-components-quiz">
+        <section class="post">
+            <h2>The smart vs dumb component quiz</h2>
+            <p>If you follow the blogs of some of the more well known SPA guru's, you...</p>
+        </section>
+    </a>
+    
+    <!-- [[! /next_post ]] -->
+    <!-- [[! prev_post ]] -->
+    
+    <!-- [[! /prev_post ]] -->
+</aside>
+
+<!-- /post -->
+
+
+        <footer class="site-footer clearfix">
+          <section class="copyright"><a href="/">KwintenP</a> &copy; 2017</section>
+          <section class="poweredby">Proudly published with <a href="https://jekyllrb.com/">Jekyll</a> using <a href="https://github.com/biomadeira/jasper">Jasper</a></section>
+        </footer>
+    </div>
+    <!-- [[! Ghost outputs important scripts and data with this tag ]] -->
+    <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+    <!-- [[! The main JavaScript file for Casper ]] -->
+    <script type="text/javascript" src="/assets/js/jquery.fitvids.js"></script>
+    <script type="text/javascript" src="/assets/js/index.js"></script>
+    <script type="text/javascript" src="/assets/js/prism.js"></script>
+
+    <!-- Add Google Analytics  -->
+        <!-- Google Analytics Tracking code -->
+     <script>
+	    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+	    ga('create', 'UA-76318751-1', 'auto');
+	    ga('send', 'pageview');
+
+     </script>   
+</body>
+</html>

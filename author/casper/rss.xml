@@ -1,0 +1,1480 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+   
+      <title></title>
+   
+   <link>https://blog.kwintenp.com</link>
+   <description>Blog on everything I'm interested in as a full stack developer.</description>
+   <language>en-uk</language>
+   <managingEditor> Kwinten Pisman</managingEditor>
+   <atom:link href="rss" rel="self" type="application/rss+xml" />
+   
+	<item>
+	  <title>Code formatting and RxJS</title>
+	  <link>//code-formatting-with-rxjs/</link>
+	  <author>Kwinten Pisman</author>
+	  <pubDate>2017-09-08T00:00:00+02:00</pubDate>
+	  <guid>//code-formatting-with-rxjs/</guid>
+	  <description><![CDATA[
+	     <p>One of the main benefits of RxJS to me is that it provides code that is ‘readable’. It provides us with a declarative programming approach where implementation details are hidden away. We are just describing what needs to be done, not how it should be done. This makes code you look at easy to understand.</p>
+
+<p>One problem that I face regularly when looking at other peoples code is that the code formatting or the way the (RxJS) code is written, takes away part of the benefit of writing your code this way. This post is a small summary on how I like to format my code to keep the readability benefits to a maximum.</p>
+
+<h3 id="one-operator-per-line">One operator per line</h3>
+
+<p>One thing I see all the time is something like this:</p>
+
+<pre><code class="language-typescript">Rx.Observable.interval(1000).map(x =&gt; x*2).filter(x =&gt; x%2 === 0)
+	.mergeMap(x =&gt; someBackendCall(x)).map(res =&gt; res.json()).subscribe();
+</code></pre>
+
+<p>Here we can see a simple stream. Looking at what is does is a little more difficult however because of the outlining of the operators. If you format the code like this, it makes it so much easier:</p>
+
+<pre><code class="language-typescript">Rx.Observable.interval(1000)
+	.map(x =&gt; x*2)
+	.filter(x =&gt; x%2 === 0)
+	.mergeMap(x =&gt; someBackendCall(x))
+	.map(res =&gt; res.json())
+	.subscribe();
+</code></pre>
+
+<p>By putting every operator on a new line, it is so much easier to see what’s happening.</p>
+
+<h3 id="using-nested-functions-for-functions-longer-than-one-line">Using nested functions for functions longer than one line</h3>
+
+<p>A lot of the RxJS operators will accept functions as parameters. These functions can influence the code formatting and impair the readability. Let’s take a look at an example:</p>
+
+<pre><code class="language-typescript">// A data$ stream
+private data$: Observable&lt;Array&lt;Data&gt;&gt;;
+
+// A function that uses this data$ 
+doSomething() {
+    this.data$
+    	.take(1)
+        .map((data) =&gt; {
+            if (data &amp;&amp; data.length &gt; 0) {
+                	return data.forEach(datum =&gt; {
+                    datum.active = false;
+                	});
+            } else {
+            		return [];
+            }
+        })
+        .mergeMap((data) =&gt; {
+            data.forEach(datum =&gt; {
+                this.whateverService.update(data);
+            });
+        })
+        .subscribe();
+}
+</code></pre>
+
+<p>We have a function <code>doSomething()</code> that, when called, will use the <code>data$</code> stream as a source and will perform a mapping of the data array events inside of this stream and then will perform a backend call for every element inside this array. <br />
+If you were able to detect this immediately, my hat off to you. To me however, this looks pretty bad. Let’s take a look at how we could make this better:</p>
+
+<pre><code class="language-typescript">// A data$ stream
+private data$: Observable&lt;Array&lt;Data&gt;&gt;;
+
+// A function that uses this data$ 
+doSomething() {
+    const mapAllTheElementsActiveFlagToFalse = (data) =&gt; {
+        if (data &amp;&amp; data.length &gt; 0) {
+            return data.forEach(datum =&gt; {
+                datum.active = false;
+            });
+        } else {
+            return [];
+        }
+    };
+
+    const callTheWhateverServiceForEveryElement = (data) =&gt; {
+        data.forEach(datum =&gt; {
+            this.whateverService.update(data);
+        });
+    }; 
+
+    this.data$
+    	.take(1)
+        .map(mapAllTheElementsActiveFlagToFalse)
+        .mergeMap(callTheWhateverServiceForEveryElement)
+        .subscribe();
+}
+</code></pre>
+
+<p>I updated the code so that all the functions passed to the operators are first created as nested functions. This might feel a little weird at first, creating nested functions, but if we look at the last few lines of code, these have become so much cleaner. If you know what the operators of RxJS do, you can actually read what is happening (I must admit, naming these functions might not be my strongest feat :)). You only have to look at the last lines of this function. The implementation details of the nested functions is irrelevant (remember, declarative is easier to read).<br />
+I find this approach really helpful and tend to use it a lot, especially for functions that are longer than a single line.</p>
+
+<h3 id="avoid-using-nested-observables">Avoid using nested observables</h3>
+
+<p>RxJS provides us with a lot of operators which you can do a whole range of stuff with. One of them is combining different streams. One thing I sometimes see is this:</p>
+
+<pre><code class="language-typescript">private data$: Observable&lt;Array&lt;Data&gt;&gt;;
+private data2$: Observable&lt;Data2&gt;;
+
+result$: Observable&lt;any&gt;;
+
+doSomething() {
+	 // we combine the data$ and data2$ with combineLatest
+    this.result$ = Observable.combineLatest(
+        this.data$
+            .map(data =&gt; data.length),
+        this.data2$
+            .mergeMap(val =&gt; this.whateverService.call(val)),
+        (val1, val2) =&gt; {
+            // handle the values here   
+        }
+    );
+}
+</code></pre>
+
+<p>We create an observable by using the <code>combineLatest</code> operator. But before we do so, the <code>data$</code> and <code>data2$</code> streams are transformed. You could say we are working with nested streams. And even though, the operators are aligned perfectly and there are no functions that are longer than one line, it still feels weird. Let’s see how we might be able to make it better:</p>
+
+<pre><code class="language-typescript">private data$: Observable&lt;Array&lt;Data&gt;&gt;;
+private data2$: Observable&lt;Data2&gt;;
+
+result$: Observable&lt;any&gt;;
+
+doSomething() {
+    const dataLength$ = this.data$
+        .map(data =&gt; data.length); 
+    const whateverData$ = this.data2$
+        .mergeMap(val =&gt; this.whateverService.call(val));
+
+	 // we combine the data$ and data2$ with combineLatest
+    this.result$ = Observable.combineLatest(
+        dataLength$,
+        whateverData$,
+        (val1, val2) =&gt; {
+            // handle the values here   
+        }
+    );
+}
+</code></pre>
+
+<p>This time, I extracted the nested observables and matched them to local variables first. I then use these newly created local variables to create a new stream using the <code>combineLatest</code> operator. <br />
+By extracting nested observables to a separate variable and naming this new observable properly, the code is easier to understand.</p>
+
+<p><strong>Conclusion</strong></p>
+
+<p>Try to keep the following in mind when writing RxJS code:</p>
+
+<ol>
+  <li>Put every operator on a new line.</li>
+  <li>Extract functions longer than a line to a nested function.</li>
+  <li>Try to avoid working with nested observables.</li>
+</ol>
+
+
+	  ]]></description>
+	</item>
+
+	<item>
+	  <title>Multicasting operators in RxJS</title>
+	  <link>//multicasting-operators-in-rxjs/</link>
+	  <author>Kwinten Pisman</author>
+	  <pubDate>2017-08-20T00:00:00+02:00</pubDate>
+	  <guid>//multicasting-operators-in-rxjs/</guid>
+	  <description><![CDATA[
+	     <p>With the arrival of RxJS 5.4 a while back, the RxJS team has given us yet another way to support multicasting in our applications. They introduced the <code>shareReplay</code> operator. With this new one around the corner, you might start wondering when to use which multicasting operator. Well, it’s your lucky day cause that’s what this post is all about.</p>
+
+<p><strong>TL:DR;</strong> You can find an overview of all the multicasting operators and their properties <a href="#operator-overview">here</a>.</p>
+
+<h2 id="what-is-multicasting">What is multicasting</h2>
+
+<p>First of all, I would like to go a little deeper into the subject of multicasting. What does this really mean? As you hopefully know, observables can be divided into two categories, hot and cold.<br />
+If you subscribe to an observable, you are going to start executing that observable. What this means is the observable will start producing values. When you are working with a cold observable, every new subscription will ‘restart’ the observables producer.</p>
+
+<p><strong>Note</strong>: If you do not know what hot and cold observables mean, you can read this excellent article on the Thoughtram blog <a href="https://blog.thoughtram.io/angular/2016/06/16/cold-vs-hot-observables.html" target="_blank">here</a>.</p>
+
+<p><strong>Note2:</strong> The fact that an observable is either cold or hot is somewhat debatable as we’ll see later on. An observable can also hold properties from both of these states. In the Thoughtram article described above, they point to these observables as being ‘warm’.</p>
+
+<p>Let’s take a look at an example:</p>
+
+<p><a class="jsbin-embed" href="http://jsbin.com/jefupu/embed?js,console">JS Bin on jsbin.com</a><script src="http://static.jsbin.com/js/embed.min.js?4.0.4"></script></p>
+
+<p>Here we can see an interval observable that will emit 5 values with half a second between them. We subscribe to this observable immediately and again after 1,5 seconds. As you can see, when the second subscription happens, it doesn’t get the same values as the first subscription. Instead, it starts with the value ‘0’. <br />
+We can conclude from this that for every subscription, the observable is ‘restarted’ and the observable will restart the production of values.</p>
+
+<p>If we try to put this into a visual representation, it might look a little like this:</p>
+
+<p><img src="https://www.dropbox.com/s/y9bh74hsiqwy205/Screenshot%202017-09-03%2014.55.00.png?raw=1" width="400" /></p>
+
+<p>We can see that the interval observable is ‘recreated’ when the second subscription occurs.</p>
+
+<p>This might feel a little weird in the beginning, but it gives us the benefit to re-use observables, which is a quite powerful concept once you get the hang of it. It however also introduces some weird side effects. Let’s take a look at an example:</p>
+
+<p><a class="jsbin-embed" href="http://jsbin.com/terapof/embed?js,console">JS Bin on jsbin.com</a><script src="http://static.jsbin.com/js/embed.min.js?4.0.4"></script></p>
+
+<p>We create an observable, <code>getLuke$</code>, which will perform a call to fetch the character of Luke Skywalker from the swapi.co API. We use this as a source to create two new observables. One holds the name of the character, the other one holds the gender of the character. We immediately subscribe to both of the observables. If you open your devtools onto the network tab, you will see that there are actually two network request being performed.</p>
+
+<p>This might seem weird at first, but in fact, it’s quite logical. The <code>getLuke$</code> observable we created is a cold one. The two new observables we create both use this one as a source. So in fact, subscribing to our <code>gender$</code> and <code>name$</code> observable, is the equivalent of subscribing to the <code>getLuke$</code> observable twice. And, as we have seen above, every subscription to a cold observable, will trigger two executions of the observable, two times the production of values, thus in this case two network requests.</p>
+
+<p>While this behaviour can be useful, sometimes you might want two backend calls, it can also be quite annoying. The problem that we are facing here is that the execution of the observable is restarted on every subscription. While sometimes, we want to share the underlying subscription. Sharing the underlying subscription is what multicasting is all about.</p>
+
+<p><strong>Note:</strong> If you are multicasting an observable, you have transformed it from a cold to a hot observable.</p>
+
+<h3 id="multicasting-example">Multicasting example</h3>
+
+<p>Let’s change our example to share the underlying subscription. For this we will use the <code>share</code> operator for now. We will investigate all the other ones and their properties later on.</p>
+
+<p><a class="jsbin-embed" href="http://jsbin.com/higujow/embed?js,console">JS Bin on jsbin.com</a><script src="http://static.jsbin.com/js/embed.min.js?4.0.4"></script></p>
+
+<p>If you run this example while opening your devtool’s network tab, you can see that there is only one request. That’s because the underlying subscription is shared. <br />
+Let’s again try to visualize this in a diagram.</p>
+
+<p><img src="https://www.dropbox.com/s/kcohbr9wa5ax631/Screenshot%202017-09-06%2021.08.08.png?raw=1" width="400" /></p>
+
+<p>Here, we can see that the share operator will only subscribe once to the source observable, being the observable that does a backend call, and will multicast the data to all the subscriptions. It acts as a proxy.</p>
+
+<h2 id="the-properties-of-multicasting">The properties of multicasting</h2>
+
+<p>A multicasting operator shares the underlying subscription towards its subscribers. The way they do it can vary quite a lot. Next we are going to go over all of the properties a multicasting operator can have.</p>
+
+<h3 id="connectable">Connectable</h3>
+
+<p>One of the ways to share the underlying subscription to multiple subscribers, is by using the <code>publish</code> operator. When you call <code>publish()</code> on an observable, you get back a <code>ConnectableObservable</code>. This is an observable that will subscribe to the source observable once you have called it’s <code>connect()</code> method. Let’s try and put this in a ASCII marble diagram to visualise it better.</p>
+
+<pre><code class="language-typescript">source observable:         ---a----b----c|
+                             -publish()-
+connect point:             C
+subscriber 1:          ^------a----b-!     
+subscriber 2:                   ^--b----c|
+</code></pre>
+
+<p><strong>Note:</strong> If you don’t know the ASCII marble syntax, take a look at the <a href="https://github.com/ReactiveX/rxjs/blob/5.4.2/doc/writing-marble-tests.md#marble-syntax" target="_blank">official documentation</a></p>
+
+<p>We have a source observable which will emit 3 values, a, b and c. We use the <code>publish</code> operator on this cold observable. This will return a <code>ConnectableObservable</code>. We have a subscriber that subscribes immediately to this stream, and a subscriber that subscribes after some time.</p>
+
+<p>We can see that the first subscription point of subscriber 1, doesn’t trigger the source observable to be started. It’s only at the time the <code>ConnectableObservables</code>’s <code>connect</code> method gets called (indicated by the ‘C’), that the source observable is started.<br />
+When the second subscription happens, the ‘a’ value has already been passed by the <code>ConnectableObservable</code> to all available subscribers at that time, which was only the first subscriber. The second subscriber missed this value. <br />
+When the ‘b’ value is produced by the source observable, it is passed to both the first and second subscriber. <br />
+Next the second subscriber unsubscribes (denoted by the ‘!’). So when the source observable emits the last value, c, and completes, only the second subscriber gets these values.</p>
+
+<p>Let’s take a look at coding example:</p>
+
+<p><a class="jsbin-embed" href="http://jsbin.com/wicarev/embed?js,console">JS Bin on jsbin.com</a><script src="http://static.jsbin.com/js/embed.min.js?4.0.4"></script></p>
+
+<p>Here we can see an interval observable that will emit 4 values. We use the <code>publish</code> operator to create a <code>publishedInterval</code> observable. We subscribe to it immediately and we subscribe to it after 2500ms. As you can see, the first subscription will not trigger the interval to be started. It’s only when we call it’s <code>connect</code> method after 600ms that it will start emitting values.</p>
+
+<p><strong>Conclusion:</strong> A multicasting operator is connectable when you have to call the <code>connect</code> method before it subscribes to the source observable and starts proxying.</p>
+
+<h3 id="reference-counting">Reference counting</h3>
+
+<p>The next property we are going to discuss is reference counting. As we’ve seen above, when we get a <code>ConnectableObservable</code> we need to call <code>connect()</code> on it before the source observable is subscribed to. Sometimes, you might want the source observable to be subscribed to as soon as there is at least one subscriber. And that’s exactly what you can achieve with reference counting through the <code>refCount</code> operator. Let’s see what this looks like in a marble diagram.</p>
+
+<pre><code class="language-typescript">source observable:     --0--1--2--!    --0--1!
+                             -publish().refCount()-
+subscriber 1:          ^-0--1!
+subscriber 2:             ^-1--2--!
+subscriber 3:                          ^-0--1!
+</code></pre>
+
+<p>We have a source observable that will emit values with some time in between. As soon as the first subscription happens, the source observable is started. When the second subscription happens, the source observable is still emitting values and it will get the same values as the first subscription. When the first subscription stops, the source observable is not unsubscribed to, but when the second one stops, it is. <br />
+The <code>refCount</code> operator will count the number of subscriptions. As soon as this number is 1, it will subscribe to the source observable and as long as this number stays 1 or higher, the source observable is subscribed to. If this number drops to 0, it unsubscribes from the source observable. <br />
+When the number rises back from 0 to 1, as it is with our third subscriber, the source observable is resubscribed to.</p>
+
+<p>Let’s take a look at some code:</p>
+
+<p><a class="jsbin-embed" href="http://jsbin.com/vujozac/embed?js,console">JS Bin on jsbin.com</a><script src="http://static.jsbin.com/js/embed.min.js?4.0.4"></script></p>
+
+<p>We have an interval observable that <code>publish().refCount()</code> is applied to. This newly created observable is subscribed to. When this happens, the source observable, our interval observable, is immediately subscribed to. <br />
+After 700ms, we subscribe a second time. At this moment, both subscriptions get the same values.<br />
+When the first subscriber unsubscribes, after 1100ms. It doesn’t influence the source observable. This is because the reference counting is still on 1. When the second subscriber stops listening, after 1700ms, the source observable is unsubscribed to because the reference counting dropped to 0. <br />
+When we resubscribe a third time, the source is subscribed to again.</p>
+
+<p><strong>Note:</strong> Using <code>publish().refCount()</code> is a quite common operation. For that reason, the <code>share()</code> alias was introduced which is the exact same thing.</p>
+
+<p><strong>Conclusion:</strong> An observable is reference counting when it subscribes as soon as there is a single subscriber and stops when there are no more subscribers.</p>
+
+<h3 id="replayable">Replayable</h3>
+
+<p>If you subscribe to a hot observable, you might have missed some values. In some cases, this might not be what you want. You might want to get at least the latest emitted value before you subscribed or the latest x values that were emitted before you subscribed. Luckily, there is a way to do that.</p>
+
+<p>Let’s first create an ASCII marble diagram to visualise what we want:</p>
+
+<pre><code class="language-typescript">source observable:     ---a----b-------c----d----e|
+                             -shareReplay(2)-
+subscriber 1:          ^--a----b!     
+subscriber 2:                    ^(ab)-c----d----e|
+</code></pre>
+
+<p>In this scenario, we are using the <code>shareReplay</code> operator. We are subscribing to the created observable twice. When the second subscription happens, the source stream has already emitted two values. When the second subscription happens, it normally would have missed these two values. But because we use the <code>shareReplay</code> operator we get these two values. We passed ‘2’ to the operator which means that it will replay the last two values before the subscription.</p>
+
+<p>Let’s take a look at an example:</p>
+
+<p><a class="jsbin-embed" href="http://jsbin.com/qumego/embed?js,console">JS Bin on jsbin.com</a><script src="http://static.jsbin.com/js/embed.min.js?4.0.4"></script></p>
+
+<p>We have an interval observable, to which the <code>shareReplay</code> operator is applied with parameter ‘2’. We subscribe to it immediately and once after some values have already been passed. We can see that, as soon as the second subscription happens, it also receives the last two values that were emitted before the subscription.</p>
+
+<p><strong>Conclusion:</strong> A multicasting operator is replayable when it emits the ‘x’ latest values to a new subscriber.</p>
+
+<h3 id="repeatable">Repeatable</h3>
+
+<p>In the previous examples, we were dealing with a source observable that completed. This could mean that if we subscribe to an observable that is multicasted or hot, for which the source has completed it will never get any values. For this reason, there are also hot observables that are repeatable. Let’s look at a ASCII marble diagram that represents this:</p>
+
+<pre><code class="language-typescript">source observable:     ---a----b|    ---a----b|    
+                             -share()-
+subscriber 1:          ^--a----b|     
+subscriber 2:                   	   ^---a----b|
+</code></pre>
+
+<p>We have a source observable that we are applying the <code>share</code> operator to. When we have a first subscriber, the source observable is started and the first subscriber get’s all the values. But by the time the second one subscribes, the source observable has already completed. In that case, at least for the <code>share</code>, the source observable is resubscribed to and the second observable will get the same values (remember the source observable in this case is a cold one so for every new subscription, the observable is restarted).</p>
+
+<p>Let’s take a look at an example:</p>
+
+<p><a class="jsbin-embed" href="http://jsbin.com/doyojenatu/embed?js,console">JS Bin on jsbin.com</a><script src="http://static.jsbin.com/js/embed.min.js?4.0.4"></script></p>
+
+<p>Here we have an interval observable where we apply the <code>share</code> operator to. It will emit 3 values in 1.5 seconds and then complete. We subscribe to it once immediately and again after 3 seconds. If we look at the output, we can see that both the subscriptions get the same values. From this we can conclude that the source observable was repeated.</p>
+
+<p><strong>Conclusion:</strong> A multicasting operator is repeatable when it resubscribes to the source observable when there is a new subscription and the source observable had already completed. It re-executes the source observable.</p>
+
+<h3 id="retryable">Retryable</h3>
+
+<p>As stated before, a multicasting operator will share the underlying subscription towards it’s subscribers and acts as a proxy. But what happens when this source observable throws an error? There are multicasting operators that will retry subscribing to the source observable when it threw an error. Let’s put this into a marble diagram:</p>
+
+<pre><code class="language-typescript">source observable:     ---#            ---#
+                             -shareReplay()-
+subscriber 1:          ^--#
+subscriber 2:                   	   ^--#
+</code></pre>
+
+<p>Here we have a source observable onto which the <code>shareReplay</code> operator is applied. When the first subscriber starts listening to it, the source observable will be subscribed to. Here, it will throw an error after some time which is send to the first subscriber.<br />
+A little while later the observable is resubscribed to by a second subscriber. This will start a new invocation of the source observable. This one will have the same effect as the first subscription. In a real life scenario, the first invocation might fail, but this doesn’t necessarily mean that the second will. In those scenario’s, retrying can be very useful.</p>
+
+<p>Let’s look at an example:</p>
+
+<p><a class="jsbin-embed" href="http://jsbin.com/diroqe/embed?js,console">JS Bin on jsbin.com</a><script src="http://static.jsbin.com/js/embed.min.js?4.0.4"></script></p>
+
+<p>We have an observable <code>throw$</code> that will, once subscribed to, will throw an error. We use the <code>do</code> operator to see if it was invoked. We apply the <code>shareReplay</code> operator to this <code>throw$</code> observable. <br />
+We subscribe immediately and after three seconds. We can see that, even though the first subscriber gets an error, as soon as the second one subscribes, the source observable is resubscribed to by the <code>shareReplay</code> operator. This makes it retryable.</p>
+
+<p><strong>Conclusion:</strong> A multicasting operator is retryable when it resubscribes to the source observable when there is a new subscription and the source observable has errored before.</p>
+
+<h2 id="operator-overview">Operator overview</h2>
+
+<p>Time to give an overview of all the multicasting operators and their respective properties:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th> </th>
+      <th style="text-align: center">Multicasting</th>
+      <th style="text-align: center">Connectable</th>
+      <th style="text-align: center">Reference counting*</th>
+      <th style="text-align: center">Replayable</th>
+      <th style="text-align: center">Repeatable</th>
+      <th style="text-align: center">Retryable</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>share()</td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+    </tr>
+    <tr>
+      <td>shareReplay()</td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+    </tr>
+    <tr>
+      <td>publish()</td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+    </tr>
+    <tr>
+      <td>publishReplay()</td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"> <input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+    </tr>
+    <tr>
+      <td>publishBehaviour()</td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+    </tr>
+    <tr>
+      <td>publishLast()</td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" checked="" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+      <td style="text-align: center"><input type="checkbox" /></td>
+    </tr>
+  </tbody>
+</table>
+
+<nowiki>*Every multicasting operator which is connectable can also have the `refCount` operator applied to. In this table however, every operator that has 'Reference counting' checked, has reference counting implicitgit ly applied in the implementation of the operator.</nowiki>
+
+
+	  ]]></description>
+	</item>
+
+	<item>
+	  <title>Introducing Rx devtools</title>
+	  <link>//introducing-rx-devtools/</link>
+	  <author>Kwinten Pisman</author>
+	  <pubDate>2017-08-04T00:00:00+02:00</pubDate>
+	  <guid>//introducing-rx-devtools/</guid>
+	  <description><![CDATA[
+	     <p>Ever since I first started using RxJS up until this very day, it has become my absolute favorite way of coding. I cannot believe to work in a world without observables anymore nor can I understand on how I was able to write code before. I have started sharing the knowlegde I had through blogposts, workshops and coaching.</p>
+
+<p>One thing that always comes up while working with observables is the very high learning curve. It’s really hard to grasp the concept when you’re just starting. One of the reasons for this is that it’s really hard to visualize and debug the observables in your application. <br />
+With this in the back of my mind, I started wondering how that could be fixed. If there only was a way to clearly see the data flowing in the streams of your application in realtime. That’s how the idea for Rx Devtools was born.</p>
+
+<h2 id="introducing-rx-devtools">Introducing Rx Devtools</h2>
+
+<p>After first playing with the idea, I decided to create a small POC. This POC has grown into a chrome extension that, as of today, can be used to visualise streams realtime! Take a look at the demo below (it’s a youtube video, pls click :)):</p>
+
+<p><a href="https://youtu.be/stWGClDE_Gk"><img src="https://img.youtube.com/vi/stWGClDE_Gk/0.jpg" alt="Rx devtools teaser" /></a></p>
+
+<p>On the left you can see the code we are debugging at the moment. Notice the <code>debug</code> operators on every observable. Here you can pass a name to track the streams. <br />
+On the right side you can see the plugin in action. Left, we have a list with one entry per observable we are debugging. When clicked on one of them, you can see the actual marble diagrams with all of the operators. You can click on a marble to inspect the value it had at that moment in time. This way, you can not only see the value of every event being passed to the observable chain, but also see the moment in time they were produced and push down this chain.</p>
+
+<p>If you for example have a combineLatest which doesn’t seem to fire, there will probably be one source observable that is not producing a value. With the plugin, this is visualised in seconds!</p>
+
+<p>For more information on the plugin, how to install, how it works and how to use it, I would like to point you to the <a href="https://github.com/kwintenp/rx-devtools" target="_blank">Github</a> page.</p>
+
+<h3 id="whats-next">What’s next</h3>
+<p>The plugin as it exists today can definitely be used. It is however far from finished and still in an alpha phase. Over the next few weeks, I’ll try to add as many features asap. If you have any ideas for features you want to see added, feel free to create feature requests through Github issues. <br />
+If you find any bugs, which I’m certain you will, please report them in the form of Github issues. I will try to tackle them asap.</p>
+
+<p>Happy debugging!</p>
+
+
+	  ]]></description>
+	</item>
+
+	<item>
+	  <title>How to setup marble testing</title>
+	  <link>//how-to-setup-marble-testing/</link>
+	  <author>Kwinten Pisman</author>
+	  <pubDate>2017-02-15T00:00:00+01:00</pubDate>
+	  <guid>//how-to-setup-marble-testing/</guid>
+	  <description><![CDATA[
+	     <p>In an earlier blogpost, I showed you guys how to do client side filtering with streams (<a href="http://blog.kwintenp.com/client-side-filtering-with-streams/" target="_blank">here</a>). I tried to show you how you could use marble diagrams to draw out how the data will flow in your streams. Turns out that drawing your marble diagrams up front can help you a lot in testing your code as well. Using the marble diagram testing provided by RxJS, we can easily test the code we’ve written in the previous post. Let’s see how.</p>
+
+<h3 id="setting-up-the-marble-diagram-testing">Setting up the marble diagram testing</h3>
+
+<p>The steps to set this up are really easy. First we need to copy two files from the RxJS source code into our own codebase. This is the <code>marble-testing.ts</code> and <code>test-helper.ts</code> file which you can find <a href="https://github.com/ReactiveX/rxjs/tree/master/spec/helpers" target="_blank">here</a>.<br />
+The next thing you need to do is import these files in a test where you want to use the marble testing.</p>
+
+<pre><code class="language-typescript">import "./helpers/test-helper.ts";
+// I'll come back to these imports later
+import { hot, cold, expectObservable } 
+	from './helpers/marble-testing';
+</code></pre>
+
+<p>That’s it, you are ready to start testing!</p>
+
+<h3 id="example">Example</h3>
+
+<p>The marble diagram for the example looks like this:</p>
+
+<p><img src="https://www.dropbox.com/s/zhj0xvz6d5e84m4/Screenshot%202017-03-04%2016.12.24.png?raw=1" alt="marble-diagram" /></p>
+
+<p>We have a stream containing the characters (which will come from the backend) and one containing a value to filter the characters based on the gender. We use the <code>combineLatest</code> operator to create a new stream which hold the filtered characters. The code to create this stream based on the two input streams looks like this:</p>
+
+<pre><code class="language-typescript">public createFilterCharacters(
+        filter$: Observable&lt;string&gt;,
+        characters$: Observable&lt;StarWarsCharacter[]&gt;) {
+  return characters$.combineLatest(filter$,
+     (characters: StarWarsCharacter[], filter: string) =&gt; {
+      if (filter === 'All') {
+        return characters;
+      }
+      return characters.filter(
+            (character: StarWarsCharacter) =&gt;
+              character.gender.toLowerCase() === filter.toLowerCase()
+      );
+  });
+}
+</code></pre>
+<p>Every time the filter stream produces a new value, we loop over the array of characters and filter out the correct ones.</p>
+
+<h4 id="testing-without-marble-diagrams">Testing without marble diagrams</h4>
+<p>Trying to test this code without using marble diagram testing is quite verbose. First of all, we would need to create two streams ourselves to mock the character and gender filter streams. Then we would need to feed them to the method and take back the resulting stream. In our test, we would have to subscribe ourselves to this stream to check if the resulting next events are the ones we expect in the order we expect them. <br />
+Let’s look at what that code would look like:</p>
+
+<pre><code class="language-typescript"> it('on createFilterCharacters without marble testing', () =&gt; {
+    // create a characters$ stream
+    const characters$ = Observable.of([obiWan, c3po, leia]);
+    // create a gender$ stream which is used to filter
+    const gender$ = new BehaviorSubject&lt;string&gt;('All');
+
+
+    let times = 0;
+    // Feed the two streams to the method and subscribe to the result
+    component.createFilterCharacters(gender$, characters$).subscribe(
+      (val) =&gt; {
+        // Based on the number of values that have passed here
+        // check the value to see if it is what we expect
+        if (times === 0) {
+          expect(val).toEqual([obiWan, c3po, leia]);
+          times++;
+        } else if (times === 1) {
+          expect(val).toEqual([obiWan]);
+          times++;
+        } else if (times === 2) {
+          expect(val).toEqual([c3po]);
+          times++;
+        } else if (times === 3) {
+          expect(val).toEqual([leia]);
+          times++;
+        }
+      }
+    );
+
+    // pass new values to the gender subject to emulate the
+    // gender filter change
+    gender$.next("Male");
+    gender$.next("N/A");
+    gender$.next("Female");
+  });
+</code></pre>
+
+<h4 id="testing-with-marble-testing">Testing with marble testing</h4>
+<p>We can write this a lot easier using marble diagram testing. To do this, we need to define ASCII marble diagrams and create observables from them. We can define the character stream like this:</p>
+
+<pre><code class="language-typescript">import { cold } from './helpers/marble-testing';
+
+// Here we create an ASCII marble diagram that 
+// represents our characters stream. Since this
+// is a backend call in real life, this will 
+// first take some time before a value is ready.
+// We represent this by using the '-'. It will take
+// 4 ticks or '-' before the result arrives. We
+// define the result with a c here and close with a
+// '|'. This denotes that the stream completes.
+const charactersASCII = "----c|";
+// We define an object that represents the values
+// in the stream above. We used the 'c' to denote 
+// a 'next' event and we use the same 'c' in the 
+// object below to point to the actual value.
+const charactersValues = {c: [obiWan, c3po, leia]};
+
+// The ASCII and the values above aren't streams
+// of course. And our method is expecting a stream.
+// Using the 'cold' helper method from the 
+// marble-testing, we can create a stream from
+// the ASCII and the values.
+const characters$ = cold(charactersASCII, charactersValues);
+</code></pre>
+<p>Now we created a stream that resembles our characters stream.</p>
+
+<p><img src="https://www.dropbox.com/s/zyr7j5goywo3asy/Screenshot%202017-05-06%2018.14.21.png?raw=1" alt="marble-diagram" /></p>
+
+<p>Let’s create the second stream. It looks the exact same way but we use the <code>hot</code> helper function instead since we are working with a subject here.</p>
+
+<pre><code class="language-typescript">import { hot } from './helpers/marble-testing';
+
+const gender = "a------b---c--d";
+const genderValues = {a: "All", b: "Male", c: "N/A", d: "Female"};
+
+const genderFilter$ = hot(gender, genderValues)
+</code></pre>
+<p>Now that we have created streams based on our ASCII marble diagrams, we can feed them to the function we are testing. But what do we do with the observable that is returned from this function? Luckily we can use another helper function provided by RxJS for that. <br />
+Let’s take a look at the full example.</p>
+
+<pre><code class="language-typescript"> it('on createFilterCharacters with marble testing', () =&gt; {
+    const charactersAscii = "----c|";
+    const charactersValues = {c: [obiWan, c3po, leia]};
+
+    const gender = "a------b---c--d";
+    const genderValues = 
+    	{a: "All", b: "Male", c: "N/A", d: "Female"};
+
+	 // Call the function we are testing with 
+	 // the observables created. 
+    const result$ = component.createFilterCharacters(
+    	hot(gender, genderValues), 
+    	cold(charactersAscii, charactersValues)
+    );
+
+    // Use the expectObservable helper function. This
+    // takes an observable and compares it to a marble
+    // diagram for correctness.
+    expectObservable(result$)
+    	.toBe(
+    		"----a--b---c--d", 
+    		{
+    		    a: charactersValues.c,
+    		    b: [obiWan],
+    		    c: [c3po],
+    		    d: [leia]}
+    	);
+  });
+</code></pre>
+
+<h3 id="conclusion">Conclusion</h3>
+<p>Using marble diagram testing, we can write tests way faster and very easy. If we use marble diagrams up front to think about our streams, we can use this to test our code as well.</p>
+
+	  ]]></description>
+	</item>
+
+	<item>
+	  <title>Using decorators and observables to implement retry</title>
+	  <link>//decorators-and-observables-to-implement-retry-logic/</link>
+	  <author>Kwinten Pisman</author>
+	  <pubDate>2017-02-15T00:00:00+01:00</pubDate>
+	  <guid>//decorators-and-observables-to-implement-retry-logic/</guid>
+	  <description><![CDATA[
+	     <p>Last week, I was at a meetup in Ghent where I was talking with <a href="https://twitter.com/stefanlapers" target="_blank">Stefan Lapers</a> about programming languages in general. We started talking about writing your backend using either Java or node.js. We agreed that node.js has massive potential but in a lot of situations companies choose Java because of it’s maturity. If you’re using a microservices based architecture for example, you can rely heavily on spring cloud which does a whole bunch of stuff for you so you can focus on functionality.<br />
+One element in spring cloud is hystrix. When you’re doing a network call which is protected by hystrix, you can, by just adding an annotation, tell how many times you want to retry this if it fails and even provide a fallback if it fails entirely.</p>
+
+<p>When I was driving home later that night, I was thinking to myself that using observables and typescript decorators, it should be possible to implement something similar myself. The next morning I tried it out and about 30 minutes later I had a working version. Here it is.</p>
+
+<h2 id="the-example">The example</h2>
+
+<p>In the example below, we have a service which fetches a number of Star Wars characters from the backend, at least it tries. It seems I kind of screwed up the implementation a little :).</p>
+
+<pre><code class="language-typescript">public getCharactersAndFail(): Observable&lt;StarWarsCharacter[]&gt; {
+    return Observable.throw('Failing on purpose');
+}
+</code></pre>
+<p>Instead of actually doing a backend call, I’m just returning an observable which will throw as soon as it’s subscribed to. This is of course not to handy but for demonstration purposes, it’s quite ideal.<br />
+Using the decorator I created myself, we can make this code a little more resillient (we’ll dive into how this decorator is constructed later on).</p>
+
+<pre><code class="language-typescript">@retry(3, [{name: 'Obi Wan', birth_year: '1234', gender: 'Male'}])
+public getCharactersAndFail(): Observable&lt;StarWarsCharacter[]&gt; {
+    return Observable.throw('Failing on purpose');
+}
+</code></pre>
+
+<p>I’ve added the <code>retry</code> decorator. The first argument it takes tells the decorator the times it should retry the backend call. The second parameter is the fallback that will be used if the backend keeps on failing.</p>
+
+<p>The following is a gif of what happens when you try to run this code:</p>
+
+<p><img src="https://www.dropbox.com/s/7natkxyj02o3xmd/Mar-08-2017%2019-32-51.gif?raw=1" alt="example-gif" /></p>
+
+<p>You can see that there are 3 tries before the method returns the fallback we defined. Pretty cool right.</p>
+
+<p>A second example is if you click the button below the first example. This will actually try to do the real request.<br />
+The code for this backend call looks like this:</p>
+
+<pre><code class="language-typescript">@retry(3, [{name: 'Obi Wan', birth_year: '1234', gender: 'Male'}])
+public getCharacters(): Observable&lt;StarWarsCharacter[]&gt; {
+    return this.http.get('https://swapi.co/api/people/')
+      .map((response: Response) =&gt; response.json().results);
+}
+</code></pre>
+
+<p>For the retry example here to work, you have to go offline first, which will cause the request to fail. If you then try to run this code, you can see in the network tab it actually tries to do 3 requests, which fail because we are offline. After three attempts, the fallback is returned.</p>
+
+<p><img src="https://www.dropbox.com/s/494jhrwvtdelo09/Mar-08-2017%2019-35-31.gif?raw=1" alt="example-gif" /></p>
+
+<p>You can find the live working example <a href="http://blog-kwintenp-examples.surge.sh/home/retry" target="_blank">here</a>. Open up your console to see the number of tries and inspect the network tab with the second example.</p>
+
+<h2 id="the-implementation">The implementation</h2>
+
+<p>To implement this, there are two important things we need to do. First is implementing the logic to retry the call if it failed. We can levarage streams for this. Next we need to extract that logic into a typescript decorator.</p>
+
+<h3 id="observable-composition">Observable composition</h3>
+
+<p>Retrying a subscription after it has failed is fairly easy using RxJS. We can use the <code>retryWhen</code> operator for this. Let’s look at some code.</p>
+
+<pre><code class="language-typescript">private starWarsService: StarWarsService;
+
+characters$: Observable&lt;StarWarsCharacter&gt; = 
+	// we call the starWarsService to get the characters
+	this.starWarsService
+		.getCharacters()
+		// we use the retryWhen operator to retry a number of times
+		.retryWhen((errors: Observable&lt;any&gt;) =&gt; {
+		  // we use the scan operator to count the number of tries
+          return errors.scan((errorCount, err) =&gt; {
+            console.log('Try ' + (errorCount + 1));
+            if (errorCount &gt;= 3) {
+              throw err;
+            }
+            return errorCount + 1;
+          }, 0).delay(1000);
+        })
+        // we catch the error if it keeps on failing and return
+        // the fallback
+        .catch(() =&gt; Observable.of(fallback));
+</code></pre>
+<p>I’m not going to go into the details of the RxJS implementation, that whould require a totally separate post.<br />
+What this code does however, is create an observable that, once subscribed to, will try to execute the backend call. If it fails, which it will in our case, it will re-execute it 2 more times with a single second delay in between. If it still fails, it will return the fallback we can define.</p>
+
+<p>That’s the exact logic we want our decorator to do. So let’s see how we can extract this logic in the decorator.</p>
+
+<h3 id="creating-a-decorator">Creating a decorator</h3>
+
+<p>There are different types of decorators. We can put a decorator on a class, method, property or accessor method. In our case, we are going to use the method decorator. A method decorator is in fact nothing more than a function that gets called at runtime. You can find more information on what decorators are and how to use them <a href="https://www.typescriptlang.org/docs/handbook/decorators.html#method-decorators" target="_blank">here</a></p>
+
+<p>Using a method decorator, you can replace, observe or modify the method definition. What we are going to do is really easy. Lets take a look at the image below.</p>
+
+<p><img src="https://www.dropbox.com/s/o3xef1gl9f4jlmd/Screenshot%202017-03-05%2014.14.48.png?raw=1" alt="method decorator" /></p>
+
+<p>At runtime, when the method we are decorating gets called, the decorator will be called first (1). We are going to call the actual function (2) which is going to return an observable in our case (3). Before returning the observable to the caller of our decorated function (5), we are going to augment the observable with our retry logic (4) and return this new observable.</p>
+
+<p>Lets take a look at the code:</p>
+
+<pre><code class="language-typescript">// defining the decorator is the same as the defining a
+// function with the same name
+export function retry(times = 3, fallback: any) {
+  return (target, key, descriptor) =&gt; {
+    // the descriptor holds a reference to the actual method
+    // we are decorating
+    const originalMethod = descriptor.value;
+    // we replace the old function with a new function
+    descriptor.value = function () {
+      // call the original method and
+      // augment the resulting observable
+      // with the retry and fallback mechanism
+      // we defined above
+      return originalMethod.apply(this)
+        .retryWhen((errors) =&gt; {
+          return errors.scan((errorCount, err) =&gt; {
+            console.log('Try ' + (errorCount + 1));
+            if (errorCount &gt;= times - 1) {
+              throw err;
+            }
+            return errorCount + 1;
+          }, 0).delay(1000);
+        })
+        .catch(() =&gt; Observable.of(fallback));
+    };
+    // return edited descriptor as opposed to
+    // overwriting the descriptor
+    return descriptor;
+  };
+}
+</code></pre>
+<p>In the decorator we take the original function. We replace this function with a new one that executes the original one and augments the resulting observable with our retry logic.</p>
+
+<p>Once you’ve understood the syntax of the method decorator, this implementation is pretty straight forward. It now allows us to add the decorator on top of every function that returns an observable like this:</p>
+
+<pre><code class="language-typescript">@retry(3, [{name: 'Obi Wan', birth_year: '1234', gender: 'Male'}])
+public getCharactersAndFail(): Observable&lt;StarWarsCharacter[]&gt; {
+    return Observable.throw('Failing on purpose');
+}
+</code></pre>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>Using the ease of composing of observables and decorators in typescript, we were able to create something really fast which can be reused throughout our entire application. It shouldn’t stop with a retry decorator. We could apply this principle to a whole bunch of RxJS related issues like catching errors for example.</p>
+
+	  ]]></description>
+	</item>
+
+	<item>
+	  <title>Client side filtering using streams</title>
+	  <link>//client-side-filtering-with-streams/</link>
+	  <author>Kwinten Pisman</author>
+	  <pubDate>2017-02-15T00:00:00+01:00</pubDate>
+	  <guid>//client-side-filtering-with-streams/</guid>
+	  <description><![CDATA[
+	     <p>I have been coaching people in using RxJS for a while now. During this time, I’ve noticed that the hardest part for people to learn is not the API, concept or operators but the paradigm switch. Thinking reactively is not something that comes easily and you really have to get your hands dirty to get there.</p>
+
+<p>Below I will show a piece of code that is used to do some basic client side filtering. It’s a snippet of code from somebody that I was coaching which perfecly shows how someone just starting with RxJS often handles this situation. Later on, we will update this to show how you would implement this with the reactive paradigm.</p>
+
+<h3 id="example-case">Example case</h3>
+
+<p>The example application we will be using is really easy. We have service which fetches a number of Star Wars characters from the swapi.com API. We will show these in a list and provide a select element to filter the fetched characters based on the gender.<br />
+The screen looks like this:</p>
+
+<p><img src="https://www.dropbox.com/s/2s9e877rpdaa5w0/Screenshot%202017-02-25%2011.16.57.png?raw=1" alt="example-app" /></p>
+
+<p>You can find the live example <a href="http://blog-kwintenp-examples.surge.sh/client-side-filter/withStream" target="_blank">here</a>.</p>
+
+<h3 id="client-side-filtering-without-streams">Client side filtering without streams</h3>
+
+<p>First we are going to look at an example where we implement the client side filtering without streams. Of course, we are going to use a stream to fetch the data from the backend, but afterwards, the implementation will be imperative.</p>
+
+<pre><code class="language-typescript">// keep a local list of all the characters
+characters: Array&lt;StarWarsCharacter&gt;;
+// keep a list of all the filtered characters
+filteredCharacters: Array&lt;StarWarsCharacter&gt;;
+
+constructor(private starWarsService: StarWarsService) {}
+
+// at startup time, we fetch the characters and save them
+// to our local copy. We keep a local copy of the entire
+// array since we will need it later on when the filter changes
+ngOnInit() {
+  this.starWarsService.getCharacters()
+    .subscribe((fetchedCharacters) =&gt; {
+        this.characters = fetchedCharacters;
+        this.filteredCharacters = fetchedCharacters;
+    })
+}
+
+// when the filter value changes, we filter the local list of
+// characters and save the result to the
+// filteredCharacters array. Here we reuse the entire array
+// to create a new one.
+filterChanged(value: string)
+  if (value === "All") {
+    this.filteredCharacters = this.characters;
+  } else {
+    this.filteredCharacters =
+       this.characters.filter(
+            (character: StarWarsCharacter) =&gt; {
+               character.gender.toLowerCase() === value.toLowerCase()
+            }
+       );
+  }
+}
+</code></pre>
+<p>At startup time, we fetch the characters and save them in two local arrays, <code>characters</code> and <code>filteredCharacters</code>. When the filter actually changes, we use the local copy of the characters to filter out all the correct ones and create a new array. We then assign this new array to the <code>filteredCharacters</code> reference.<br />
+The component’s html looks like this:</p>
+
+<pre><code class="language-html">&lt;h1&gt;Client side filtering without streams example&lt;/h1&gt;
+&lt;div class="row"&gt;
+  &lt;div class="col-sm-3"&gt;
+    &lt;!-- Component that holds the select and throws an event --&gt;
+    &lt;!-- when it changes --&gt;
+    &lt;app-gender-filter (filterChange)="filterChanged($event)"&gt;
+    &lt;/app-gender-filter&gt;
+  &lt;/div&gt;
+  &lt;div class="col-sm-9"&gt;&lt;/div&gt;
+  &lt;div class="col-sm-6"&gt;
+    &lt;!-- component that holds the list and displays the --&gt;
+    &lt;!-- characters --&gt;
+    &lt;app-character-list [characters]="filteredCharacters"&gt;
+    &lt;/app-character-list&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+</code></pre>
+
+<p>While this all works perfectly, it’s not the best solution possible with the reactive paradigm in mind. We have to hold a local copy of the characters array, which kind of bugs me.<br />
+It’s also not really flexible. Here, we are fetching the characters via a backend call. This will thus only hold one result. But what if it’s an observable we get from Firebase? In that case the characters array can change as well. To be able to update the view properly when the characters change, we would also have to keep a local copy of the filter to update the <code>filteredCharacters</code> array reference accordingly.<br />
+And what if you would have a multitude of filters… This would result in a multitude of local variables to keep track of.</p>
+
+<p>Using streams we can make this much more flexible!</p>
+
+<h3 id="client-side-filtering-with-streams">Client side filtering with streams</h3>
+
+<p>Let’s first of all try to think what should happen by thinking in streams of data. We will then try to reason about how we can use these streams, combine them and create a result.</p>
+
+<p>If you think about it, we have two inputs that might change our view. On the one hand, we have our list of characters, which should be displayed. And on the other hand we have the dropdown which might filter this list.</p>
+
+<p>Let’s look at the marble diagrams of what these streams might look like:</p>
+
+<p><img src="https://www.dropbox.com/s/89blsfj9aoybdg0/Screenshot%202017-03-04%2016.10.54.png?raw=1" alt="marble-diagram" /></p>
+
+<p>The resulting stream we want is one that holds an array with the filtered characters. If you think about the two input streams we just created, this resulting stream is actually a combination of both of the input streams.<br />
+If we have characters, we want to combine these with the filter and display them onto the screen. If the filter changes, we want to re-execute this logic. If we would have new characters (think about a stream from Firebase), we would also want to re-execute this logic.</p>
+
+<p>It turns out that RxJS provides us with a perfect operator to do something like this: <code>combineLatest</code>. This operator merges streams by executing a projector function on the latest values of these streams.<br />
+The resulting stream looks like this:</p>
+
+<p><img src="https://www.dropbox.com/s/zhj0xvz6d5e84m4/Screenshot%202017-03-04%2016.12.24.png?raw=1" alt="marble-diagram" /></p>
+
+<p><strong>Note:</strong> You can notice here that the result stream only holds a value when both of the streams have emitted a single value. This is a precondition of the <code>combineLatest</code> operator. It will only emit an event onto the newly created stream if all source observables have emitted at least one element. If we think about our example, this means that the gender filter should already have a value to start with.</p>
+
+<p>Let’s take a look at the code!</p>
+
+<pre><code class="language-typescript">export class ClientSideFilterComponent implements OnInit {
+  filter$: BehaviorSubject&lt;string&gt;;
+  characters$: Observable&lt;StarWarsCharacter[]&gt;;
+  filteredCharacters$: Observable&lt;StarWarsCharacter[]&gt;;
+
+  constructor(private starWarsService: StarWarsService) {
+  }
+
+  ngOnInit() {
+    // We create a stream ourselves to map an event form the child
+    // component to a stream of 'filter values'.
+    // We use a BehaviorSubject because this will have an initial 
+    // value. This is important because the combineLatest operator
+    // we will use below only works if every stream has emitted 
+    // at least one value.
+    this.filter$ = new BehaviorSubject("All");
+
+    // we keep the stream containing our characters
+    this.characters$  = this.starWarsService.getCharacters();
+
+    // we create a new stream based on the two input
+    // streams we defined
+    this.filteredCharacters$ = this.createFilterCharacters(
+            this.filter$,
+            this.characters$
+    );
+  }
+
+  public createFilterCharacters(
+            filter$: Observable&lt;string&gt;,
+            characters$: Observable&lt;StarWarsCharacter[]&gt;) {
+    // We combine both of the input streams using the combineLatest
+    // operator. Every time one of the two streams we are combining
+    // here changes value, the project function is re-executed and
+    // the result stream will get a new value. In our case this is
+    // a new array with all the filtered characters.
+    return characters$.combineLatest(
+      filter$, (characters: StarWarsCharacter[], filter: string) =&gt; {
+        // this is the project function where we imperatively
+        // implement the filtering logic
+        if (filter === "All") return characters;
+        return characters.filter(
+                (character: StarWarsCharacter) =&gt;
+                    character.gender.toLowerCase()
+                        === filter.toLowerCase()
+        );
+      });
+  }
+
+  filterChanged(value: string) {
+    // Everytime we have new value, we pass it to the filter$
+    this.filter$.next(value);
+  })
+}
+</code></pre>
+<p>We can use the new stream we created to bind in the view using the async pipe from Angular like this:</p>
+
+<pre><code class="language-html">&lt;h1&gt;Client side filtering with streams example&lt;/h1&gt;
+&lt;div class="row"&gt;
+  &lt;div class="col-sm-3"&gt;
+    &lt;app-gender-filter (filterChange)="filterChanged($event)"&gt;
+    &lt;/app-gender-filter&gt;
+  &lt;/div&gt;
+  &lt;div class="col-sm-9"&gt;&lt;/div&gt;
+  &lt;div class="col-sm-6"&gt;
+    &lt;!-- Using the async pipe we bind it in the app-character-list --&gt;
+    &lt;!-- component --&gt;
+    &lt;app-character-list [characters]="filteredCharacters$ | async"&gt;
+    &lt;/app-character-list&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+</code></pre>
+
+<p>If we look at the code we have now, it’s much more flexible. We do not have to write any extra code if the <code>characters$</code>  would have any new values. We do not need to hold any local copies (this is done implicitely by the <code>combineLatest</code> operator). If we would want to add new filters, it’s just a matter of adding another stream to the <code>combineLatest$</code> operator.<br />
+We also don’t have to manually unsubscribe from the filteredCharacters$, the async pipe handles this for us.</p>
+
+<h3 id="conclusion">Conclusion</h3>
+<p>By thinking in input streams and output streams, we were able to map the inputs we had to a result. We bound the stream in the view layer. Using streams up until the html of our component, we eliminated the need for local copies of data and made our code more robust and open to changes. If we now want to add another filter on top of the list, it’s a piece of cake!</p>
+
+<p>You can find the code on <a href="https://github.com/KwintenP/blog-examples/tree/master/src/app/home/client-side-filter" target="_blank"> Github </a>.</p>
+
+	  ]]></description>
+	</item>
+
+	<item>
+	  <title>My favorite metaphor for hot vs cold observables</title>
+	  <link>//my-favorite-metaphor-for-hot-vs-cold-observables/</link>
+	  <author>Kwinten Pisman</author>
+	  <pubDate>2017-01-10T00:00:00+01:00</pubDate>
+	  <guid>//my-favorite-metaphor-for-hot-vs-cold-observables/</guid>
+	  <description><![CDATA[
+	     <p>A few weeks ago, I was at NG-BE (best conference of the year btw), where I was giving a workshop on RxJS and @ngrx/store in Angular 2 applications. In this course, we also explain hot vs cold observables.<br />
+When I try to explain new concepts to people, I either try to start from a known concept and build my way up to the new thing or use a metaphor. I’ve been looking for a similar approach to explain the hot vs cold observables concept but didn’t found one myself.<br />
+At the conference, I started talking with <a href="https://www.linkedin.com/in/lander-verhack-a404a04b" target="_blank">Lander Verhack</a>. Lander gives trainings at U2U and he told me a great metaphor for this concept. I’ll try to explain it below but all credits go to him for coming up with it.</p>
+
+<h3 id="watching-a-movie">Watching a movie</h3>
+<p>When you want to watch a movie nowadays, you have a lot of different options. You can either go to the movies, rent out a dvd (do people still do this?) or use some service like Netflix.<br />
+Lets first think about what happens when you watch a movie via Netflix.</p>
+
+<h4 id="netflix">Netflix</h4>
+<p>First step in watching a movie on Netflix is looking one up in the catalogue. As soon as you have found one, you can decide to start watching it. A Netflix movie will, unless you’ve already watched a part, start from the beginning. It doesn’t matter how many other people are watching the movie, you will always start at the beginning. If the movie doesn’t live up to your expactations, you can decide to stop watching it.</p>
+
+<p>It turns out that watching a movie on netflix is the perfect metaphor for a cold observable. Lets take a look at the common properties between these two:</p>
+
+<ul>
+  <li>If no one is listening, the movie is not streamed. The movie stream is lazy, just like the cold observable.</li>
+  <li>For every listener, a new stream is started. It’s not because 5 people are already watching the movie somewhere else in the world, that your movie will not start from the beginning. The movie stream is unicast, just like a cold observable.</li>
+</ul>
+
+<h4 id="going-to-the-movies">Going to the movies</h4>
+<p>Another way of watching a movie is by going to the movies. In contrast with Netflix, it’s not you who decides when the movie will begin. It will begin at a predetermined time. When the movie starts, everyone who is present will see the same movie. If someone arrives too late, he will have missed the first part of the movie, but can follow everything afterwards the same way as the other people. If you decide to stop watching the movie because you don’t like it, the other people can keep on watching it. If everybody decides to walk out because it’s that bad, the movie will keep on playing.</p>
+
+<p>Going to the movies is actually the perfect metaphor for a hot observable. Lets take a look at the common properties between the two:</p>
+
+<ul>
+  <li>As soon as the movie starts, everybody who is watching it, sees the same thing. If a person arrives 5 minutes late, the movie will not restart just for him. He will, from his moment of arrival, see the same things. So watching a movie at the movies is the same as a hot observable because it is multicast.</li>
+  <li>If the movie has already started, and you arrive 5 minutes later, you will have missed the first part. So just like a hot observable, the movie is not lazy.</li>
+</ul>
+
+<h3 id="what-about-publishrefcount">What about <code>publish().refCount()</code></h3>
+
+<p>Aside from hot and cold observables, you can also create an observable that starts emitting values as soon as there is one subscriber. You can accomplish this with the <code>publish().refCount()</code> operator or its alias <code>share()</code>. I’ve seen people calling this observable ‘warm’, ‘semi-hot’ or ‘semi-cold’.</p>
+
+<h4 id="watching-a-movie-with-friends">Watching a movie with friends</h4>
+<p>You could think of this ‘type’ of observable as watching a movie with some (douchy) friends. Let’s say you decide to watch a movie together at 6PM at your friends place. Due to car trouble, you’ll be runnning 15 minutes late so you text your friend and ask him to wait.<br />
+Because he is so excited about the movie, he decides to start anyway. As expected, you arrive 15 minutes late and you keep on watching the movie, having missed the first part.</p>
+
+<p>Let’s see how this maps to the ‘warm’ observable we described above.</p>
+
+<ul>
+  <li>Since your (douchy) friend decides to start watching the movie, you missed the first part. So, as soon as he starts watching the movie, the movie stream starts and all your friends that were on time, see the same values. Since you arrive too late, you’ll miss the first part. This is exactly the same as our ‘warm’ observable.</li>
+</ul>
+
+<h3 id="conclusion">Conclusion</h3>
+<p>So, if you ever have to explain the concept yourself, or just as a way to better remember it, think of observables like this:</p>
+
+<ul>
+  <li>Hot observable 		-&gt; 		Movie at the movies</li>
+  <li>Cold observable 		-&gt; 		Movie with netflix</li>
+  <li>‘Warm’ observable 	-&gt; 		Movie with friends</li>
+</ul>
+
+	  ]]></description>
+	</item>
+
+	<item>
+	  <title>How share() can reduce network requests</title>
+	  <link>//how-share()-can-reduce-network-requests/</link>
+	  <author>Kwinten Pisman</author>
+	  <pubDate>2016-12-20T00:00:00+01:00</pubDate>
+	  <guid>//how-share()-can-reduce-network-requests/</guid>
+	  <description><![CDATA[
+	     <p>As you hopefully all know, observables you get back from the Angular 2 Http service are cold. A cold observable only starts when you subscribe to to it and is unicast (for every subscription to the Http observable, a network call is triggered).</p>
+
+<p><strong>Note:</strong> If you want to dive deeper into hot vs cold observables, Christoph Burgdorf from Thoughtram wrote <a href="http://blog.thoughtram.io/angular/2016/06/16/cold-vs-hot-observables.html" target="_blank">an awesome article </a> on the subject (Rx pun intended :)).</p>
+
+<h4 id="project-setup">Project setup</h4>
+
+<p>To demonstrate how the <code>share()</code> operator can reduce our number of network calls, I’ve created a demo application (code available on <a href="https://github.com/KwintenP/save-netwerk-requests-with-share" target="_blank">Github</a>). The setup looks like this:</p>
+
+<p><img src="https://www.dropbox.com/s/d87po1zbp2ri11u/Screenshot%202016-12-15%2020.08.33.png?raw=1" alt="setup" /></p>
+
+<p>As you can see, we have an app component, which is smart, and three dumb components. During startup, the app component will randomly fetch one of the Star Wars characters by calling the StarWarsService.</p>
+
+<pre><code class="language-typescript">// app.component.ts
+this.character$ =
+     this.starWarsService.getCharacter(this.generateNumber());
+</code></pre>
+
+<p>The StarWarsService uses Angular’s Http and returns a character from the series using the swapi.co API.</p>
+
+<pre><code class="language-typescript">// star-wars.service.ts
+public getCharacter(id: number): Observable&lt; StarWarsCharacter &gt; {
+    return this.http.get('https://swapi.co/api/people/' + id)
+      .map((response: Response) =&gt; response.json());
+}
+</code></pre>
+
+<p>The app component creates three new observables by mapping the <code>character$</code> source observable.</p>
+
+<pre><code class="language-typescript">// app.component.ts
+this.name$ = this.character$.map(character =&gt; character.name);
+this.birthDate$ = this.character$.map(character =&gt; character.birth_year);
+this.gender$ = this.character$.map(character =&gt; character.gender);
+</code></pre>
+
+<p>The data is passed to the dumb components using the <code>async</code> pipe.</p>
+
+<pre><code class="language-html">&lt;app-character-name [name]="name$ | async"&gt;
+&lt;/app-character-name&gt;
+&lt;app-character-birthdate [birthDate]="birthDate$ | async"&gt;
+&lt;/app-character-birthdate&gt;
+
+&lt;button type="button" (click)="toggleEnabled()"&gt;
+     Enable gender component
+&lt;/button&gt;
+&lt;app-character-gender *ngIf="enabled" [gender]="gender$ | async"&gt;
+&lt;/app-character-gender&gt;
+</code></pre>
+
+<p>As you can see in the snippet above, the gender component is only rendered <strong>after</strong> the button has been clicked. This way we can simulate a ‘delayed subscription’. We’ll see why this is important in a second.</p>
+
+<h4 id="potential-pitfall">Potential pitfall</h4>
+<p>If we run this code, everything works perfectly. But if we look at the network tab, we can see some strange behaviour.</p>
+
+<p><img src="https://www.dropbox.com/s/j5etmgqz668v4wp/Dec-15-2016%2020-00-10.gif?raw=1" alt="setup" /></p>
+
+<p>When the page is refreshed, we already see two calls to the backend. If we click the button to enable the gender component, we see another request being send. Why do we see multiple backend requests if we’re only asking for one <code>character$</code>?</p>
+
+<p>The reason is simple. The <code>character$</code> is a <strong>cold observable</strong>. If you subscribe to a cold http observable twice, you’ll have two backend requests.<br />
+We map this <code>character$</code> or source observable using the <code>map</code> operator to three different observables. Every subscription to one of these three observables (which is done by the async pipe), is basically the same as subscribing to the <code>character$</code> observable directly. And because the <code>character$</code> observable is a cold observable, you see multiple requests.<br />
+The problem with this is that the underlying subscription to the source observable is <strong>not shared</strong>.</p>
+
+<h4 id="how-can-we-fix-this-kind-of">How can we fix this (kind of)</h4>
+
+<p>Let’s change the observable that the StarWarsService returns like this:</p>
+
+<pre><code class="language-typescript">return this.http.get('https://swapi.co/api/people/' + id)
+      .map((response: Response) =&gt; response.json())
+      .share();
+</code></pre>
+
+<p>We added the <code>share()</code> operator. This is an alias for doing <code>publish().refCount()</code>. This will make the <code>character$</code> a hot observable that starts emitting events as soon as the first one subscribes. The <code>character$</code> observable will be a ‘shared’ one. Let’s first see what this means and explain afterwards:</p>
+
+<p><img src="https://www.dropbox.com/s/o3i03kudmutt1gk/Dec-15-2016%2019-57-47.gif?raw=1" alt="setup" /></p>
+
+<p>Now we can see that, on the initial page load, there is only one request. That’s because the <code>share()</code> operator will share the underlying subscription between its listeners. As soon as the first one subscribes, it will listen to the Http observable and thus trigger one backend request. Everybody else who starts listening afterwards, will get the same result. Hence we only see a single request to the swapi.co API.</p>
+
+<p>But, when I click on the button to enable the gender component, we can see that a second request is triggered. This means our <code>share()</code> operator doesn’t help us entirely. It turns out that with <code>share()</code>, if the source observable completes, the underlying subscription is gone as well. So when the gender component gets rendered, the original request is long finished and completed. For every new subscription after this completion, in our case via the <code>gender$</code> observable, the <code>share()</code> operator will start a new backend request.</p>
+
+<p>This can perfectly be expected behaviour, if you want it. In some cases though, you don’t.</p>
+
+<h4 id="publishreplay-to-the-rescue">publishReplay to the rescue</h4>
+
+<p>Let’s change the observable from the StarWarsService one more time:</p>
+
+<pre><code class="language-typescript">let obs$: ConnectableObservable&lt;StarWarsCharacter&gt; =
+     this.http.get('https://swapi.co/api/people/' + id)
+         .map((response: Response) =&gt; response.json())
+         .publishReplay();
+obs$.connect();
+return obs$;
+</code></pre>
+
+<p>I removed the <code>share()</code> operator and used <code>publishReplay()</code> instead. This will return an observable that will subscribe to the source observable as soon as you <code>connect()</code> it. In our case, this needs to happen immediately, so I call it before returning.<br />
+Let’s see what this does:</p>
+
+<p><img src="https://www.dropbox.com/s/5j4381vj8439dbb/Dec-15-2016%2019-55-20.gif?raw=1" alt="setup" /></p>
+
+<p>Alright! Now we only have one request at startup time and we do not have a new one when we render the gender component. The <code>publishReplay()</code> operator doesn’t care if the Http observable completes or not. For every new subscription, it will just return the previous result.</p>
+
+<h4 id="conclusion">Conclusion</h4>
+
+<ul>
+  <li>If your source observable ‘splits’ into multiple observables, using the <code>share()</code> operator will reduce network requests.</li>
+  <li>If you have subscriptions which are delayed due to delayed rendering, you might want to use the <code>publishReplay()</code> operator to avoid extra requests.</li>
+</ul>
+
+<p><strong>NOTE:</strong> Thanks to <a href="https://twitter.com/juristr">@juristr</a> for the review!</p>
+
+
+	  ]]></description>
+	</item>
+
+	<item>
+	  <title>Type safe actions in reducers</title>
+	  <link>//type-safe-actions-in-reducers/</link>
+	  <author>Kwinten Pisman</author>
+	  <pubDate>2016-11-21T00:00:00+01:00</pubDate>
+	  <guid>//type-safe-actions-in-reducers/</guid>
+	  <description><![CDATA[
+	     <p>I’ve been using TypeScript and Redux for a while now. One thing that’s been bothering me from day one is the lack of typing on actions, or so I thought. Until the following twitter conversation last week caught my eye.</p>
+
+<p><img src="https://www.dropbox.com/s/28omnkkkn1o2rm1/Screenshot%202016-11-16%2016.45.43.png?raw=1" alt="twitter" /></p>
+
+<p>It’s about an exhaustive switch statement in flowtype and the option to do the same in TypeScript. But the real interesting part for me was the link from Mike Ryan. He pointed out they used some kind of pattern in the ngrx example app. Having never checked it out before, I decided to do so, and I found this cool idea to use classes for your actions.</p>
+
+<p>I loved it so much, I decided to blog about it :). All credits to Mike Ryan of course who came up with the idea.</p>
+
+<h3 id="my-previous-situation">My previous situation</h3>
+<p>This is what my old code looked like (see comments).</p>
+
+<pre><code class="language-typescript">// Create string constants for the action types
+const SET_ID: string = "SET_ID";
+const REMOVE_ID: string = "REMOVE_ID";
+
+// Create action creators for every action
+function setId(id): Action {
+	return { type: SET_ID, payload: { id } };
+}
+
+function removeId(): Action {
+	return { type: REMOVE_ID };
+}
+
+function test(state: string = "", action: Action): string {
+    // switch on the action type
+	switch (action.type) {
+		case SET_ID:
+		     // have absolutely no type safety on the
+		     // payload here since payload is
+		     // defined as 'any'
+		     return action.payload.id;
+		case REMOVE_ID:
+	         return "";
+		default:
+		     return state;
+	}
+}
+
+</code></pre>
+<p>While this is perfectly valid code, it doesn’t provide me with any code completion or type safety regarding the payload.<br />
+Just check out this <a href="http://bit.ly/2fVxE7C" target="_blank">TypeScript playground</a> example and try to change the <code>action.payload.id</code> into <code>action.payload.whatever</code>. You will see no compile errors.</p>
+
+<p>Let’s see how this can be improved.</p>
+
+<h3 id="use-classes-to-define-actions">Use classes to define actions</h3>
+<p>In the following code snippet I used classes for actions instead of action creators. These classes extend from the Action interface. This means, every class will have the <code>type</code> property.<br />
+I also created a new <a href="https://www.typescriptlang.org/docs/handbook/advanced-types.html#union-types" target="blank">Union type</a> called <code>Actions</code> which combines all the possible action classes.</p>
+
+<p>Our switch statement works on the common denominator between all our actions, being the <code>type</code> property. This way the TypeScript compiler can<br />
+know that, if the type is for example <code>"SET_ID"</code>, the only possible class in that specific ‘case’ part of the switch statement is the <code>SetId</code> class. It can then use the type information in that class to determine what the payload looks like. Check the code below if this is unclear.</p>
+
+<p>This is a concept called <a href="https://www.typescriptlang.org/docs/handbook/advanced-types.html#discriminated-unions" target="_blank">Discriminated Unions</a>.</p>
+
+<pre><code class="language-typescript">// Instead of using action creators, classes are used.
+class SetId implements Action {
+	type: "SET_ID" = "SET_ID";
+	// here we declare the type of the payload for the
+	// SetId class to be an object with a property 'id'
+	payload: { id: string };
+
+	public constructor(id: string) {
+		this.payload = { id };
+	}
+}
+
+class RemoveId implements Action {
+	type: "REMOVE_ID" = "REMOVE_ID";
+
+	public constructor() { }
+}
+
+// Create a union type that contains all the possible actions.
+type Actions = SetId | RemoveId;
+
+function test(state: string = "", action: Actions): string {
+    // The switch case statements use discriminated unions
+	switch (action.type) {
+		case "SET_ID":
+		    // The compiler knows this can only be the
+		    // class SetId so it can use the type
+		    // information in that class
+		    // to know the payload has an id property.
+			return action.payload.id;
+		case "REMOVE_ID":
+			return "";
+		default:
+			return state;
+	}
+}
+
+</code></pre>
+
+<p>You can try this <a href="http://bit.ly/2fXYiPB" target="_blank">TypeScript playground example</a>. If you remove the id property in the switch statement, you’ll see that you have autocompletion</p>
+
+<p><img src="https://www.dropbox.com/s/1s4zyh01xbp8g2a/Screenshot%202016-11-16%2020.31.03.png?raw=1" alt="autocomplete" /></p>
+
+<p>and type safety!</p>
+
+<p><img src="https://www.dropbox.com/s/6wtt9oupqr8290z/Screenshot%202016-11-16%2020.45.46.png?raw=1" alt="type safety" /></p>
+
+<p>Just try to change the property <code>id</code> into <code>whatever</code>, you’ll get a compilation error. You can even click on the <code>id</code> property and directly be redirected to the <code>SetId</code> class.</p>
+
+<p>Awesome right!</p>
+
+<h3 id="the-finishing-touch">The finishing touch</h3>
+<p>The way the type property in the classes were defined before, are a little strange.</p>
+
+<pre><code class="language-typescript">type: "REMOVE_ID";
+</code></pre>
+<p>This is actually called a <a href="https://www.typescriptlang.org/docs/handbook/advanced-types.html#string-literal-types" target="_blank">String literal type</a>.<br />
+There’s a better way to do this using a utility method that coerces a string you pass to it to a string literal type. It also remembers every action type you’ve passed to it to avoid duplicates in your app.</p>
+
+<pre><code class="language-typescript">let typeCache: { [label: string]: boolean } = {};
+export function type&lt;T&gt;(label: T | ''): T {
+  // this actually checks whether your action type
+  // name is unique!
+  if (typeCache[&lt;string&gt;label]) {
+    throw new Error(`Action type "${label}" is not unqiue"`);
+  }
+
+  typeCache[&lt;string&gt;label] = true;
+
+  return &lt;T&gt;label;
+}
+</code></pre>
+
+<p>Using this function, you can declare your action types like this:</p>
+
+<pre><code class="language-typescript">export const ActionTypes = {
+	SET_ID: type&lt;"SET_ID"&gt;("SET_ID"),
+	REMOVE_ID: type&lt;"REMOVE_ID"&gt;("REMOVE_ID")
+}
+</code></pre>
+
+<p>and use them everywhere like this:</p>
+
+<pre><code class="language-typescript">type = ActionTypes.SET_ID;
+// or
+case ActionTypes.SET_ID:
+</code></pre>
+
+<p>Checkout the finished <a href="http://bit.ly/2m7nG7S" target="blank">TypeScript playground example</a>. It’s basically the same as the previous one, but cleaner.</p>
+
+<h3 id="conclusion">Conclusion</h3>
+<p>Using some of TypeScript 2’s powerful typing system, you can make the actions in your reducers type safe with little effort.</p>
+
+<p><strong>Note:</strong> Thanks to <a href="https://twitter.com/PascalPrecht" target="_blank">Pascal Precht</a>, <a href="https://twitter.com/toddmotto" target="_blank">Todd Motto</a>, <a href="https://twitter.com/basarat" target="_blank">Basarat</a> and <a href="https://twitter.com/SamVerschueren" target="_blank">Sam Verschueren</a> for reviewing!</p>
+
+
+	  ]]></description>
+	</item>
+
+	<item>
+	  <title>combineReducers enhanced</title>
+	  <link>//combinereducers-enhanced/</link>
+	  <author>Kwinten Pisman</author>
+	  <pubDate>2016-09-15T00:00:00+02:00</pubDate>
+	  <guid>//combinereducers-enhanced/</guid>
+	  <description><![CDATA[
+	     <p>When working with redux or ngrx/store, you get a lovely utillity method called <code>combineReducers</code> that solves a pretty annoying problem for you. This method could however be further improved and we’ll see why in a bit.</p>
+
+<p><strong>Note: some knowledge of the redux architecture is required to continue with this blogpost. Checkout <a href="http://redux.js.org/" target="_blank">this</a> for more info on Redux.</strong></p>
+
+<p><strong>Note: Since the PR still isn’t merged in the @ngrx/store library, I created a separate npm module with the functionality described below. You can find the github repo <a href="https://github.com/KwintenP/combine-reducers-enhanced" target="_blank">here</a>.</strong></p>
+
+<p><strong>TL;DR Go to the <a href="#conclusion">conclusion</a></strong></p>
+
+<h3 id="current-situation">Current situation</h3>
+<p>Take a look at the following state design.</p>
+
+<pre><code class="language-typescript">{
+	"ui": {
+		"topBarCollapsed": true,
+		"sideBarCollapsed": true
+	},
+	"data": {
+		"tweets": [],
+		"users": []
+	}
+}
+</code></pre>
+
+<p>Let’s try to translate this into reducers.</p>
+
+<h5 id="without-combinereducers">Without combineReducers</h5>
+
+<p>Remember, when your store is being initialised, you can only pass it a single reducer. To avoid a single reducer with all the logic, we are going to use the concept of reducer composition. Your reducer tree could look like this:</p>
+
+<p><img src="https://www.dropbox.com/s/gglg3j3ama5affo/Screenshot%202016-09-14%2016.35.12.png?raw=1" /></p>
+
+<p>You can then create your store like this:</p>
+
+<pre><code class="language-typescript">// pseudo code
+new Store(rootReducer);
+</code></pre>
+
+<p>The function of the rootReducer is:</p>
+
+<ul>
+  <li>Delegate the actions towards the dataReducer and the uiReducer with the correct state slice.</li>
+  <li>Assure that the reference of the data does not change if changes are made to the ui property and vice versa.</li>
+</ul>
+
+<p>The ‘rootReducer’ doesn’t do that much and it’s a PITA to have to write this every time. Every time a new action is added, you need to add it to the rootReducer as well.<br />
+Enter <code>combineReducers</code>!</p>
+
+<h5 id="with-combinereducers">With combineReducers</h5>
+<p><code>combineReducers</code> removes the need to write this reducer yourself. When creating your store, you can pass it, not only a reducer function, but also an object like this:</p>
+
+<pre><code class="language-typescript">const rootReducer = {
+	ui: uiReducer,
+	data: dataReducer
+}
+
+new Store(rootReducer);
+</code></pre>
+
+<p>The store will see this is not a function, and thus not a ‘rootReducer’. Internally it will  pass this object to the <code>combineReducers</code> method. This will generate a ‘meta-reducer’ for you that does exactly the same as the ‘rootReducer’ we’ve described before.<br />
+Conceptually speaking it looks like this:</p>
+
+<p><img src="https://www.dropbox.com/s/i1mh7frvr8tddg0/Screenshot%202016-09-15%2007.42.26.png?raw=1" /></p>
+
+<p>The advantage is that you do not need to write the ‘rootReducer’ yourself.<br />
+Pretty neat right!</p>
+
+<h3 id="problem-description">Problem description</h3>
+<p>Let’s say, you have a state tree that looks more like this.</p>
+
+<pre><code class="language-typescript">{
+	"ui": {
+		"mainPage": {
+				"topBarCollapsed": true
+		},
+		"loginPage": {
+			"sideBarCollapsed": true
+		}
+	},
+	"data": {
+		"tweets": [],
+		"users": []
+	}
+}
+</code></pre>
+
+<p>As you can see, we have a second nested level for our ui property and maybe we want to split the data into two different reducers, a tweets- and usersReducer.<br />
+Let’s take a look at how we can implement this.</p>
+
+<h3 id="current-possible-solutions">Current possible solutions</h3>
+<p>The <code>combineReducers</code> method only allows a single level of nesting, so we’ll have to see how we can fix this.</p>
+
+<h5 id="create-the-intermediary-reducers-yourself">Create the intermediary reducers yourself</h5>
+<p>You can always decide to just implement the intermediate reducers yourself.</p>
+
+<p><img src="https://www.dropbox.com/s/e2gjsrcp03cxzq9/Screenshot%202016-09-15%2020.11.55.png?raw=1" /></p>
+
+<p>However, writing these reducers yourself is the same PITA as it was for the first level so it’s not the preferred solution</p>
+
+<h5 id="use-a-third-party-library-which-handles-this-for-you">Use a third-party library which handles this for you</h5>
+<p>There is a third-party library created by Brecht Billiet that does exactly this. Check it out <a href="https://github.com/brechtbilliet/create-reducer-tree">here</a>.<br />
+You can pass it an object and it will create all the intermediate reducers for you. This is an awesome solution, but unfortunately, it requires us to depend an yet another third-party library.</p>
+
+<h5 id="nest-the-combinereducers-method-yourself">Nest the combineReducers method yourself</h5>
+
+<p>Since we have the <code>combineReducers</code> method, we might as well leverage it fully and use it for every intermediary reducer. You can do this by passing an object like this to your store at creation time.</p>
+
+<pre><code class="language-typescript">const rootReducer = {
+	"ui": combineReducers({
+		"mainPage": mainPageReducer
+		"loginPage": loginReducer
+	}),
+	"data": combineReducers({
+		"tweets": tweetsReducer
+		"users": usersReducer
+	})
+}
+</code></pre>
+
+<p>It will generate all the intermediary reducers for you but the ‘rootReducer’ definition doesn’t look clean. For people just starting with Redux, this will probably look a little confusing as well.</p>
+
+<p>It turns out, the <code>combineReducers</code> method can be changed to fix this pretty easily.<br />
+<a name="conclusion"></a></p>
+
+<h3 id="proposed-solution">Proposed solution</h3>
+<p>I’ve created a <a href="https://github.com/ngrx/store/pull/214" target="_blank">PR</a> towards the ngrx/store library where I extended the <code>combineReducers</code> method to work with nested objects as well. This allows you to create an object like this:</p>
+
+<pre><code class="language-typescript">const rootReducer = {
+	"ui": {
+		"mainPage": mainPageReducer
+		"loginPage": loginReducer
+	},
+	"data": {
+		"tweets": tweetsReducer
+		"users": usersReducer
+	}
+}
+
+new Store(rootReducer);
+</code></pre>
+
+<p>which will create this:</p>
+
+<p><img src="https://www.dropbox.com/s/lpd3io77pqemecp/Screenshot%202016-09-15%2007.42.41.png?raw=1" /></p>
+
+<p>It’s actually a change of only two LOC and semantically does exactly the same as nesting the <code>combineReducers</code> method yourself or the third-party library, but it’s a lot cleaner to implement and use.<br />
+If you feel this feature might help you in the future, be sure to ‘like’ the PR it so it could be added to the library asap.</p>
+
+<p><strong>Note: As soon as the PR is being approved for the NGRX/Store library, I’ll submit a similar one to Redux.js</strong></p>
+
+
+	  ]]></description>
+	</item>
+
+
+</channel>
+</rss>

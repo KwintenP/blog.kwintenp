@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>KwintenP - Articles</title>
+    <description>Blog on everything I&#39;m interested in as a full stack developer.</description>
+    <link>
+    https://blog.kwintenp.com</link>
+    
+      
+      <item>
+        <title>Code formatting and RxJS</title>
+        
+          <description>&lt;p&gt;One of the main benefits of RxJS to me is that it provides code that is ‘readable’. It provides us with a declarative programming approach where implementation details are hidden away. We are just describing what needs to be done, not how it should be done. This makes code you look at easy to understand.&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Fri, 08 Sep 2017 00:00:00 +0200</pubDate>
+        <link>
+        https://blog.kwintenp.com/code-formatting-with-rxjs/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/code-formatting-with-rxjs/</guid>
+      </item>
+      
+    
+      
+      <item>
+        <title>Multicasting operators in RxJS</title>
+        
+          <description>&lt;p&gt;With the arrival of RxJS 5.4 a while back, the RxJS team has given us yet another way to support multicasting in our applications. They introduced the &lt;code&gt;shareReplay&lt;/code&gt; operator. With this new one around the corner, you might start wondering when to use which multicasting operator. Well, it’s your lucky day cause that’s what this post is all about.&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Sun, 20 Aug 2017 00:00:00 +0200</pubDate>
+        <link>
+        https://blog.kwintenp.com/multicasting-operators-in-rxjs/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/multicasting-operators-in-rxjs/</guid>
+      </item>
+      
+    
+      
+      <item>
+        <title>Introducing Rx devtools</title>
+        
+          <description>&lt;p&gt;Ever since I first started using RxJS up until this very day, it has become my absolute favorite way of coding. I cannot believe to work in a world without observables anymore nor can I understand on how I was able to write code before. I have started sharing the knowlegde I had through blogposts, workshops and coaching.&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Fri, 04 Aug 2017 00:00:00 +0200</pubDate>
+        <link>
+        https://blog.kwintenp.com/introducing-rx-devtools/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/introducing-rx-devtools/</guid>
+      </item>
+      
+    
+      
+      <item>
+        <title>How to setup marble testing</title>
+        
+          <description>&lt;p&gt;In an earlier blogpost, I showed you guys how to do client side filtering with streams (&lt;a href=&quot;http://blog.kwintenp.com/client-side-filtering-with-streams/&quot; target=&quot;_blank&quot;&gt;here&lt;/a&gt;). I tried to show you how you could use marble diagrams to draw out how the data will flow in your streams. Turns out that drawing your marble diagrams up front can help you a lot in testing your code as well. Using the marble diagram testing provided by RxJS, we can easily test the code we’ve written in the previous post. Let’s see how.&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Wed, 15 Feb 2017 00:00:00 +0100</pubDate>
+        <link>
+        https://blog.kwintenp.com/how-to-setup-marble-testing/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/how-to-setup-marble-testing/</guid>
+      </item>
+      
+    
+      
+      <item>
+        <title>Using decorators and observables to implement retry</title>
+        
+          <description>&lt;p&gt;Last week, I was at a meetup in Ghent where I was talking with &lt;a href=&quot;https://twitter.com/stefanlapers&quot; target=&quot;_blank&quot;&gt;Stefan Lapers&lt;/a&gt; about programming languages in general. We started talking about writing your backend using either Java or node.js. We agreed that node.js has massive potential but in a lot of situations companies choose Java because of it’s maturity. If you’re using a microservices based architecture for example, you can rely heavily on spring cloud which does a whole bunch of stuff for you so you can focus on functionality.&lt;br /&gt;
+One element in spring cloud is hystrix. When you’re doing a network call which is protected by hystrix, you can, by just adding an annotation, tell how many times you want to retry this if it fails and even provide a fallback if it fails entirely.&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Wed, 15 Feb 2017 00:00:00 +0100</pubDate>
+        <link>
+        https://blog.kwintenp.com/decorators-and-observables-to-implement-retry-logic/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/decorators-and-observables-to-implement-retry-logic/</guid>
+      </item>
+      
+    
+      
+      <item>
+        <title>Client side filtering using streams</title>
+        
+          <description>&lt;p&gt;I have been coaching people in using RxJS for a while now. During this time, I’ve noticed that the hardest part for people to learn is not the API, concept or operators but the paradigm switch. Thinking reactively is not something that comes easily and you really have to get your hands dirty to get there.&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Wed, 15 Feb 2017 00:00:00 +0100</pubDate>
+        <link>
+        https://blog.kwintenp.com/client-side-filtering-with-streams/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/client-side-filtering-with-streams/</guid>
+      </item>
+      
+    
+      
+      <item>
+        <title>My favorite metaphor for hot vs cold observables</title>
+        
+          <description>&lt;p&gt;A few weeks ago, I was at NG-BE (best conference of the year btw), where I was giving a workshop on RxJS and @ngrx/store in Angular 2 applications. In this course, we also explain hot vs cold observables.&lt;br /&gt;
+When I try to explain new concepts to people, I either try to start from a known concept and build my way up to the new thing or use a metaphor. I’ve been looking for a similar approach to explain the hot vs cold observables concept but didn’t found one myself.&lt;br /&gt;
+At the conference, I started talking with &lt;a href=&quot;https://www.linkedin.com/in/lander-verhack-a404a04b&quot; target=&quot;_blank&quot;&gt;Lander Verhack&lt;/a&gt;. Lander gives trainings at U2U and he told me a great metaphor for this concept. I’ll try to explain it below but all credits go to him for coming up with it.&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Tue, 10 Jan 2017 00:00:00 +0100</pubDate>
+        <link>
+        https://blog.kwintenp.com/my-favorite-metaphor-for-hot-vs-cold-observables/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/my-favorite-metaphor-for-hot-vs-cold-observables/</guid>
+      </item>
+      
+    
+      
+      <item>
+        <title>How share() can reduce network requests</title>
+        
+          <description>&lt;p&gt;As you hopefully all know, observables you get back from the Angular 2 Http service are cold. A cold observable only starts when you subscribe to to it and is unicast (for every subscription to the Http observable, a network call is triggered).&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Tue, 20 Dec 2016 00:00:00 +0100</pubDate>
+        <link>
+        https://blog.kwintenp.com/how-share()-can-reduce-network-requests/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/how-share()-can-reduce-network-requests/</guid>
+      </item>
+      
+    
+      
+      <item>
+        <title>Type safe actions in reducers</title>
+        
+          <description>&lt;p&gt;I’ve been using TypeScript and Redux for a while now. One thing that’s been bothering me from day one is the lack of typing on actions, or so I thought. Until the following twitter conversation last week caught my eye.&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Mon, 21 Nov 2016 00:00:00 +0100</pubDate>
+        <link>
+        https://blog.kwintenp.com/type-safe-actions-in-reducers/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/type-safe-actions-in-reducers/</guid>
+      </item>
+      
+    
+      
+      <item>
+        <title>combineReducers enhanced</title>
+        
+          <description>&lt;p&gt;When working with redux or ngrx/store, you get a lovely utillity method called &lt;code&gt;combineReducers&lt;/code&gt; that solves a pretty annoying problem for you. This method could however be further improved and we’ll see why in a bit.&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Thu, 15 Sep 2016 00:00:00 +0200</pubDate>
+        <link>
+        https://blog.kwintenp.com/combinereducers-enhanced/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/combinereducers-enhanced/</guid>
+      </item>
+      
+    
+      
+      <item>
+        <title>How to write clean reducers (and test them!)</title>
+        
+          <description>&lt;p&gt;Last week, someone asked me how I kept my reducers clean and how to properly test them. Since it wasn’t the first time someone asked me that, I decided to write it down for future reference.&lt;br /&gt;
+Here it is!&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Mon, 22 Aug 2016 00:00:00 +0200</pubDate>
+        <link>
+        https://blog.kwintenp.com/how-to-write-clean-reducers-and-test-them/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/how-to-write-clean-reducers-and-test-them/</guid>
+      </item>
+      
+    
+      
+      <item>
+        <title>How the hell does zone.js really work?</title>
+        
+          <description>&lt;p&gt;If you’ve read about Angular 2 change detection, you will probably have heard about zones. Zones is a feature that was ported from Dart and is used internally by Angular 2 to determine if a change detection cycle should be triggered.&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Thu, 09 Jun 2016 00:00:00 +0200</pubDate>
+        <link>
+        https://blog.kwintenp.com/how-the-hell-do-zones-really-work/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/how-the-hell-do-zones-really-work/</guid>
+      </item>
+      
+    
+      
+      <item>
+        <title>The smart vs dumb component quiz</title>
+        
+          <description>&lt;p&gt;If you follow the blogs of some of the more well known SPA guru’s, you will most definitely have heard of the concept of &lt;code&gt;smart&lt;/code&gt; and &lt;code&gt;dumb&lt;/code&gt; components. If you haven’t, here’s a listing of some of those blogposts:&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Fri, 22 Apr 2016 00:00:00 +0200</pubDate>
+        <link>
+        https://blog.kwintenp.com/the-smart-vs-dumb-components-quiz/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/the-smart-vs-dumb-components-quiz/</guid>
+      </item>
+      
+    
+      
+      <item>
+        <title>The $onChanges lifecycle-hook in depth</title>
+        
+          <description>&lt;p&gt;With the release of Angular 1.5.3 we got some awesome new features. As you all know, the point of the Angular 1.5 releases are to bring us closer to the Angular 2 way of working. With that in mind, the latest new feature we’ve got are Lifecycle hooks. What those are and how you can use them has already been perfectly explained by Pascal Precht on &lt;a href=&quot;http://blog.thoughtram.io/angularjs/2016/03/29/exploring-angular-1.5-lifecycle-hooks.html&quot;&gt;his blog&lt;/a&gt;. For the remainder of this blog, I’m going to assume you have read it.&lt;br /&gt;
+I’m not going to try and do the same, instead I want to look at a specific lifecycle hook in depth, &lt;code&gt;$onChanges&lt;/code&gt;. We’ll look at how it is implemented by Angular, how we can use it with some examples, a pitfall when using it with non-primitives and how we can fix it.&lt;/p&gt;
+
+</description>
+        
+        <pubDate>Wed, 06 Apr 2016 00:00:00 +0200</pubDate>
+        <link>
+        https://blog.kwintenp.com/the-onchanges-lifecycle-hook/</link>
+        <guid isPermaLink="true">https://blog.kwintenp.com/the-onchanges-lifecycle-hook/</guid>
+      </item>
+      
+    
+  </channel>
+</rss>
