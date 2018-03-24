@@ -4,7 +4,9 @@
   "description": "Github repo for blog.kwintenp.com",
   "main": "index.js",
   "dependencies": {},
-  "devDependencies": {},
+  "devDependencies": {
+    "cz-conventional-changelog": "^2.1.0"
+  },
   "scripts": {
     "start": "bundle exec jekyll serve"
   },
@@ -17,5 +19,10 @@
   "bugs": {
     "url": "https://github.com/KwintenP/kwintenp.github.io/issues"
   },
-  "homepage": "https://github.com/KwintenP/kwintenp.github.io#readme"
+  "homepage": "https://github.com/KwintenP/kwintenp.github.io#readme",
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  }
 }
